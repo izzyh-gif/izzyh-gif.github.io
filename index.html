@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jordan Ellis — Portfolio</title>
-<meta name="description" content="Portfolio of Isabella Hu — IS &amp; AI student. Projects, research, and ways to get in touch.">
+<meta name="description" content="Portfolio of Jordan Ellis — CS &amp; data science student. Projects, research, and ways to get in touch.">
 
 <!--
   ============================================================
@@ -135,7 +135,7 @@
   }
   .ripple{
     position:absolute;
-    width:12px; height:12px;
+    width:24px; height:7px;
     border:1px solid rgba(255,246,234,.55);
     border-radius:50%;
     opacity:0;
@@ -210,6 +210,11 @@
   body.rain-off .particle{
     animation:none !important;
     opacity:0;
+    transition:opacity .5s ease;
+  }
+  body.rain-off .ripple{
+    animation:none !important;
+    opacity:0 !important;
     transition:opacity .5s ease;
   }
 
@@ -288,18 +293,19 @@
   }
   .orb-icon{
     position:relative;
-    width:56px; height:92px;
-    display:flex; align-items:flex-end; justify-content:center;
-    transition:filter .4s ease;
+    width:64px; height:64px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 35% 30%, rgba(159,214,161,0.16), rgba(255,255,255,0.06) 72%);
+    border:1px solid rgba(255,246,234,0.35);
+    backdrop-filter:blur(6px);
+    transition:transform .35s ease, background .35s ease, box-shadow .35s ease, border-color .35s ease;
   }
-  .orb-icon svg{ width:100%; height:100%; overflow:visible; display:block; }
   .orb-icon::after{
     content:"";
-    position:absolute; left:50%; bottom:4%;
-    width:68%; height:12%;
-    transform:translateX(-50%) scale(1);
-    border:1px solid var(--gold);
+    position:absolute; inset:0;
     border-radius:50%;
+    border:1px solid var(--gold);
     opacity:0;
     pointer-events:none;
   }
@@ -307,42 +313,17 @@
     animation:orbRipple .8s ease-out;
   }
   @keyframes orbRipple{
-    0%{ opacity:.55; transform:translateX(-50%) scale(1); }
-    100%{ opacity:0; transform:translateX(-50%) scale(1.9); }
+    0%{ opacity:.55; transform:scale(1); }
+    100%{ opacity:0; transform:scale(1.7); }
   }
-
-  .orb-icon .stem{ transition:stroke .4s ease; }
-  .orb:hover .orb-icon .stem, .orb:focus-visible .orb-icon .stem{ stroke:var(--gold); }
-
-  .orb-icon .bud{
-    transform-origin:30px 30px;
-    transition:opacity .4s ease, transform .4s ease;
-  }
-  .orb:hover .orb-icon .bud, .orb:focus-visible .orb-icon .bud{
-    opacity:0;
-    transform:scale(.55);
-  }
-
-  .orb-icon .bloom{ opacity:0; transition:opacity .5s ease; }
-  .orb:hover .orb-icon .bloom, .orb:focus-visible .orb-icon .bloom{ opacity:1; }
+  .orb-icon svg{ width:26px; height:26px; color:var(--cream); transition:color .35s ease; }
   .orb:hover .orb-icon, .orb:focus-visible .orb-icon{
-    filter:drop-shadow(0 8px 20px rgba(232,84,46,.4));
+    transform:translateY(-4px) scale(1.08);
+    background:rgba(255,198,92,0.18);
+    border-color:var(--gold);
+    box-shadow:0 8px 30px rgba(232,84,46,.35);
   }
-
-  .orb-icon .petal{
-    transform-origin:30px 30px;
-    transform:scale(.2);
-    transition:transform .5s cubic-bezier(.34,1.56,.64,1);
-  }
-  .orb-icon .petal.outer{ transition-delay:0s; }
-  .orb-icon .petal.inner{ transition-delay:.14s; }
-  .orb:hover .orb-icon .petal, .orb:focus-visible .orb-icon .petal{ transform:scale(1); }
-
-  .orb-icon .stamen{
-    opacity:0;
-    transition:opacity .4s ease .3s;
-  }
-  .orb:hover .orb-icon .stamen, .orb:focus-visible .orb-icon .stamen{ opacity:1; }
+  .orb:hover .orb-icon svg, .orb:focus-visible .orb-icon svg{ color:var(--gold); }
 
   .orb-label{
     font-size:.85rem;
@@ -495,14 +476,15 @@
   }
   .about-portrait{
     width:220px; height:220px;
-    border-radius:50%;
-    background:radial-gradient(circle at 32% 30%, var(--pale-green), var(--plum) 60%, var(--night-2) 100%);
+    flex-shrink:0;
+    border-radius:14px;
+    background:rgba(255,246,234,0.08);
+    border:2px dashed rgba(255,246,234,0.4);
     display:flex; align-items:center; justify-content:center;
-    font-family:var(--font-display);
-    font-size:3.4rem;
-    color:var(--cream);
+    color:rgba(255,246,234,0.55);
     box-shadow:0 20px 50px rgba(13,38,33,.4);
   }
+  .about-portrait svg{ width:56px; height:56px; }
   .about-body p{
     line-height:1.75;
     color:rgba(255,246,234,.88);
@@ -664,7 +646,7 @@
   }
   @media (max-width:480px){
     .orbit-nav{ gap:1.4rem; }
-    .orb-icon{ width:44px; height:72px; }
+    .orb-icon{ width:56px; height:56px; }
     .section-inner{ padding:4.5rem 1.2rem; }
   }
 
@@ -778,130 +760,38 @@
 
     <div class="hero-content">
       <!-- EDIT: NAME — swap the name below -->
-      <p class="eyebrow-name">learn more about</p>
+      <p class="eyebrow-name">portfolio</p>
       <h1>Isabella Hu</h1>
       <p class="type-line" id="typeLine" aria-live="polite"><span id="typeText"></span><span class="cursor" id="cursor"></span></p>
       <p class="hero-sub">
         <!-- EDIT: NAME — one-line intro -->
         Currently studying information systems, with an interest in healthcare systems,
-        human-centered products, and consulting.
+       human-centered design, and consulting
       </p>
     </div>
 
     <nav class="orbit-nav" aria-label="Quick navigation">
       <a class="orb" href="#about">
         <span class="orb-icon" aria-hidden="true">
-          <svg viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="lotusAbout" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#ff8fae"/>
-                <stop offset="100%" stop-color="#ffe9ee"/>
-              </linearGradient>
-            </defs>
-            <ellipse cx="30" cy="93" rx="15" ry="3" fill="none" stroke="var(--cream)" stroke-width="1" opacity=".4"/>
-            <path d="M21 79 C13 77, 9 71, 11 65 C18 67, 22 72, 21 79 Z" fill="var(--lily)" opacity=".85"/>
-            <path class="stem" d="M30 91 C28 78, 33 62, 30 45" fill="none" stroke="var(--lily)" stroke-width="1.8" stroke-linecap="round"/>
-
-            <g class="bud">
-              <path d="M30 47 C19 43, 15 26, 30 10 C45 26, 41 43, 30 47 Z" fill="url(#lotusAbout)"/>
-              <path d="M30 47 C24 42, 21 29, 30 16 C39 29, 36 42, 30 47 Z" fill="url(#lotusAbout)" opacity=".55"/>
-            </g>
-
-            <g class="bloom">
-              <g transform="rotate(0 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(60 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(120 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(180 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(240 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(300 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(30 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(90 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(150 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(210 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(270 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(330 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusAbout)"/></g>
-              <g transform="rotate(-10 30 30)"><path class="stamen" d="M30 30 C28.5 29.3, 27.5 27, 28 24.5 C28.5 23, 29.3 22, 30 22 C30.7 22, 31.5 23, 32 24.5 C32.5 27, 31.5 29.3, 30 30 Z" fill="#fff6ea" opacity=".92"/></g>
-              <g transform="rotate(10 30 30)"><path class="stamen" d="M30 30 C28.5 29.3, 27.5 27, 28 24.5 C28.5 23, 29.3 22, 30 22 C30.7 22, 31.5 23, 32 24.5 C32.5 27, 31.5 29.3, 30 30 Z" fill="#fff6ea" opacity=".92"/></g>
-              <path class="stamen" d="M30 30 C29 29.4, 28.4 27.7, 28.8 26 C29.1 25, 29.6 24.3, 30 24.3 C30.4 24.3, 30.9 25, 31.2 26 C31.6 27.7, 31 29.4, 30 30 Z" fill="#fff6ea"/>
-            </g>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 6.2c-1.9-1.4-4.4-2.1-6.8-2.1-.7 0-1.2.6-1.2 1.3v12.4c0 .8.7 1.4 1.5 1.3 2.2-.3 4.6.3 6.5 1.6V6.2z"/>
+            <path d="M12 6.2c1.9-1.4 4.4-2.1 6.8-2.1.7 0 1.2.6 1.2 1.3v12.4c0 .8-.7 1.4-1.5 1.3-2.2-.3-4.6.3-6.5 1.6V6.2z"/>
           </svg>
         </span>
         <span class="orb-label">About</span>
       </a>
       <a class="orb" href="#projects">
         <span class="orb-icon" aria-hidden="true">
-          <svg viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="lotusProjects" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#e8542e"/>
-                <stop offset="100%" stop-color="#ffd9c7"/>
-              </linearGradient>
-            </defs>
-            <ellipse cx="30" cy="93" rx="15" ry="3" fill="none" stroke="var(--cream)" stroke-width="1" opacity=".4"/>
-            <path d="M21 79 C13 77, 9 71, 11 65 C18 67, 22 72, 21 79 Z" fill="var(--lily)" opacity=".85"/>
-            <path class="stem" d="M30 91 C28 78, 33 62, 30 45" fill="none" stroke="var(--lily)" stroke-width="1.8" stroke-linecap="round"/>
-
-            <g class="bud">
-              <path d="M30 47 C19 43, 15 26, 30 10 C45 26, 41 43, 30 47 Z" fill="url(#lotusProjects)"/>
-              <path d="M30 47 C24 42, 21 29, 30 16 C39 29, 36 42, 30 47 Z" fill="url(#lotusProjects)" opacity=".55"/>
-            </g>
-
-            <g class="bloom">
-              <g transform="rotate(0 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(60 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(120 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(180 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(240 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(300 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(30 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(90 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(150 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(210 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(270 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(330 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusProjects)"/></g>
-              <g transform="rotate(-10 30 30)"><path class="stamen" d="M30 30 C28.5 29.3, 27.5 27, 28 24.5 C28.5 23, 29.3 22, 30 22 C30.7 22, 31.5 23, 32 24.5 C32.5 27, 31.5 29.3, 30 30 Z" fill="#fff6ea" opacity=".92"/></g>
-              <g transform="rotate(10 30 30)"><path class="stamen" d="M30 30 C28.5 29.3, 27.5 27, 28 24.5 C28.5 23, 29.3 22, 30 22 C30.7 22, 31.5 23, 32 24.5 C32.5 27, 31.5 29.3, 30 30 Z" fill="#fff6ea" opacity=".92"/></g>
-              <path class="stamen" d="M30 30 C29 29.4, 28.4 27.7, 28.8 26 C29.1 25, 29.6 24.3, 30 24.3 C30.4 24.3, 30.9 25, 31.2 26 C31.6 27.7, 31 29.4, 30 30 Z" fill="#fff6ea"/>
-            </g>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 8l-3.2 4L9 16M15 8l3.2 4L15 16"/>
           </svg>
         </span>
         <span class="orb-label">Projects</span>
       </a>
       <a class="orb" href="#contact">
         <span class="orb-icon" aria-hidden="true">
-          <svg viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="lotusContact" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#ffcf6b"/>
-                <stop offset="100%" stop-color="#fff6ea"/>
-              </linearGradient>
-            </defs>
-            <ellipse cx="30" cy="93" rx="15" ry="3" fill="none" stroke="var(--cream)" stroke-width="1" opacity=".4"/>
-            <path d="M21 79 C13 77, 9 71, 11 65 C18 67, 22 72, 21 79 Z" fill="var(--lily)" opacity=".85"/>
-            <path class="stem" d="M30 91 C28 78, 33 62, 30 45" fill="none" stroke="var(--lily)" stroke-width="1.8" stroke-linecap="round"/>
-
-            <g class="bud">
-              <path d="M30 47 C19 43, 15 26, 30 10 C45 26, 41 43, 30 47 Z" fill="url(#lotusContact)"/>
-              <path d="M30 47 C24 42, 21 29, 30 16 C39 29, 36 42, 30 47 Z" fill="url(#lotusContact)" opacity=".55"/>
-            </g>
-
-            <g class="bloom">
-              <g transform="rotate(0 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(60 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(120 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(180 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(240 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(300 30 30)"><path class="petal outer" d="M30 30 C22 28, 17 18, 20 8 C22 3, 27 1, 30 1 C33 1, 38 3, 40 8 C43 18, 38 28, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(30 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(90 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(150 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(210 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(270 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(330 30 30)"><path class="petal inner" d="M30 30 C26 29, 23.5 24, 25 19 C26 16.5, 28 15, 30 15 C32 15, 34 16.5, 35 19 C36.5 24, 34 29, 30 30 Z" fill="url(#lotusContact)"/></g>
-              <g transform="rotate(-10 30 30)"><path class="stamen" d="M30 30 C28.5 29.3, 27.5 27, 28 24.5 C28.5 23, 29.3 22, 30 22 C30.7 22, 31.5 23, 32 24.5 C32.5 27, 31.5 29.3, 30 30 Z" fill="#fff6ea" opacity=".92"/></g>
-              <g transform="rotate(10 30 30)"><path class="stamen" d="M30 30 C28.5 29.3, 27.5 27, 28 24.5 C28.5 23, 29.3 22, 30 22 C30.7 22, 31.5 23, 32 24.5 C32.5 27, 31.5 29.3, 30 30 Z" fill="#fff6ea" opacity=".92"/></g>
-              <path class="stamen" d="M30 30 C29 29.4, 28.4 27.7, 28.8 26 C29.1 25, 29.6 24.3, 30 24.3 C30.4 24.3, 30.9 25, 31.2 26 C31.6 27.7, 31 29.4, 30 30 Z" fill="#fff6ea"/>
-            </g>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 3.5L3 10.8l6.7 2.4M21 3.5L13.7 21l-4-7.8M21 3.5l-11.3 9.9"/>
           </svg>
         </span>
         <span class="orb-label">Contact</span>
@@ -931,12 +821,19 @@
       </div>
 
       <div class="about-grid">
-        <div class="about-portrait" aria-hidden="true">JE</div>
+        <!-- EDIT: ABOUT — replace this square placeholder with a real photo -->
+        <div class="about-portrait" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+        </div>
 
         <div class="about-body">
           <!-- EDIT: ABOUT — replace with your real bio -->
           <p>
-            Hi! I'm Isabella, a sophomore in Information Systems student at CMU exploring how AI and technology can transform organization from business, healthcare, and user-centered perspectives.
+            Hi! I'm Isabella, a sophomore in Information Systems student at CMU  exploring how AI and technology can transform organizations from business, healthcare, and user-centered perspectives.
           </p>
           <p>
             Outside of coursework, I've worked as a consultant, project lead, and now executive board at CMU's Undergraduate Consulting Club. I recently started research at the Human Computer Interaction Institute in the Data Interaction Group (DIG). In my free time, I lead Chinese dance pieces, go on matcha runs, and rewatch Marvel movies.
@@ -949,7 +846,7 @@
             </div>
             <div>
               <dt>Major</dt>
-              <dd>Information Systems &amp; AI minor with concentration in health information systems</dd>
+              <dd>Information Systems &amp; AI Minor, Concentration in Health Information Systems</dd>
             </div>
             <div>
               <dt>Graduating</dt>
@@ -957,7 +854,7 @@
             </div>
             <div>
               <dt>Interests</dt>
-              <dd>Healthcare, HCI, Consulting, Client &amp; User-Facing Work</dd>
+              <dd>Healthcare, HCI, Consulting, Client &amp; User-facing Work</dd>
             </div>
           </dl>
         </div>
@@ -974,7 +871,7 @@
     </div>
     <div class="section-inner">
       <div class="section-head">
-        <h2>Projects</h2>
+        <h2>Selected projects</h2>
         <p>A mix of coursework, independent builds, and research I've worked on.</p>
       </div>
 
@@ -984,7 +881,7 @@
           <h3>Project Title</h3>
           <p>Project Description</p>
           <div class="tag-row">
-            <span class="tag">tool</span>
+            <span class="tag">software</span>
             <span class="tag">tool</span>
             <span class="tag">skill</span>
           </div>
@@ -996,12 +893,12 @@
 
         <!-- EDIT: PROJECT 2 -->
         <article class="project-card">
-          <h3>Project Titles</h3>
+          <h3>Project Title</h3>
           <p>Project Description</p>
           <div class="tag-row">
             <span class="tag">tool</span>
             <span class="tag">tool</span>
-            <span class="tag">tool</span>
+            <span class="tag">skill</span>
           </div>
           <div class="project-links">
             <a href="#">View code</a>
@@ -1014,8 +911,8 @@
           <h3>Project Title</h3>
           <p>Project Description</p>
           <div class="tag-row">
-            <span class="tag">tool</span>
-            <span class="tag">tool</span>
+            <span class="tag">skill</span>
+            <span class="tag">skill</span>
           </div>
           <div class="project-links">
             <a href="#">View code</a>
@@ -1027,7 +924,7 @@
           <h3>Project Title</h3>
           <p>Project Description</p>
           <div class="tag-row">
-            <span class="tag">programming language</span>
+            <span class="tag">tool</span>
             <span class="tag">tool</span>
             <span class="tag">skill</span>
           </div>
@@ -1077,7 +974,7 @@
   <p class="credits">
     Designed and built with the help of Claude (Anthropic) — used for layout, animation code, and copy drafting.
     Visual mood and art direction inspired by <a href="https://jennyyu.squarespace.com" target="_blank" rel="noopener">Jenny Yu's illustration portfolio</a>.
-    <br>© 2026 Jordan Ellis. All rights reserved.
+    <br>© 2026 Isabella Hu. All rights reserved.
   </p>
 </footer>
 
@@ -1089,10 +986,10 @@
 
   /* ---------- typing / retyping animation ---------- */
   var roles = [
-    "student",
-    "leader",
-    "problem-solver",
-    "dancer"
+    "information systems student.",
+    "consultant.",
+    "researcher.",
+    "leader."
   ];
   var typeEl = document.getElementById('typeText');
 
@@ -1142,6 +1039,37 @@
       field.appendChild(p);
     }
   }
+
+  /* ---------- internal anchor navigation (JS-driven, bypasses native href jump) ---------- */
+  function scrollToSection(id, moveFocus){
+    var target = document.getElementById(id);
+    if (!target) return;
+    target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    if (moveFocus) {
+      var hadTabindex = target.hasAttribute('tabindex');
+      if (!hadTabindex) target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: true });
+      if (!hadTabindex) {
+        target.addEventListener('blur', function onBlur(){
+          target.removeAttribute('tabindex');
+          target.removeEventListener('blur', onBlur);
+        });
+      }
+    }
+  }
+
+  var internalLinkSelectors = ['.skip-link', '.wordmark', '.side-nav a', '.orb'];
+  internalLinkSelectors.forEach(function(selector){
+    document.querySelectorAll(selector).forEach(function(el){
+      var href = el.getAttribute('href') || '';
+      if (href.charAt(0) !== '#' || href.length < 2) return;
+      var id = href.slice(1);
+      el.addEventListener('click', function(e){
+        e.preventDefault();
+        scrollToSection(id, selector === '.skip-link');
+      });
+    });
+  });
 
   /* ---------- scroll-spy for the side nav dots ---------- */
   var navLinks = document.querySelectorAll('.side-nav a');
