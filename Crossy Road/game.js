@@ -287,6 +287,8 @@
       if (row !== 0) {
         const treeChance = 0.5;
         for (let c = -HALF_COLS; c <= HALF_COLS; c++) {
+          // Never place a tree on the centre column of row 2 (tutorial jetpack spot)
+          if (row === 2 && c === 0) continue;
           if (Math.random() < treeChance * 0.22) {
             data.trees.push(c);
           }
@@ -295,7 +297,10 @@
       // Jetpack spawn: only on grass rows after row 3, with set probability,
       // and not on the same col as a tree.
       data.jetpack = null;
-      if (row > 3 && Math.random() < JETPACK_SPAWN_CHANCE) {
+      // Always spawn a tutorial jetpack on row 2, centred.
+      if (row === 2) {
+        data.jetpack = 0; // centre column
+      } else if (row > 3 && Math.random() < JETPACK_SPAWN_CHANCE) {
         // Pick a column that won't be blocked by a tree
         const freeCols = [];
         for (let c = -HALF_COLS + 2; c <= HALF_COLS - 2; c++) {
