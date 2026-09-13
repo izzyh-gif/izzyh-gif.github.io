@@ -21,6 +21,10 @@
 
   const LANE_TYPES = { GRASS: 'grass', ROAD: 'road', RIVER: 'river' };
 
+  const JETPACK_SPAWN_CHANCE = 0.12;  // chance per grass lane (row > 3)
+  const JETPACK_FLY_DURATION = 1.1;   // seconds for the full flight arc
+  const JETPACK_FLY_HEIGHT   = 3.8;   // peak height above ground during flight
+
   const COLORS = {
     // Grass — bright lime green like the reference
     grass:        [0x74b944, 0x6aad3a, 0x7dc94e],
@@ -59,6 +63,11 @@
     treeCubeDark: 0x5fa828,
     treeTrunk:    0x8B5a2a,
     bush:         0x7dc93a,
+    // Jetpack powerup
+    jetpackBody:  0xff6600,
+    jetpackTank:  0xdddddd,
+    jetpackFlame: 0xffdd00,
+    jetpackGlow:  0xff4400,
   };
 
   // ─── State ───────────────────────────────────────────────
@@ -75,25 +84,32 @@
   let lanes      = [];       // array of lane descriptors
   let laneObjects = [];      // THREE.Group per lane row
   let obstacles  = [];       // moving objects
+  let jetpackPickups = [];   // { row, col, mesh, collected }
 
   let keysDown   = {};
   let inputQueue = [];       // queued hop directions
 
   let playerState = {
-    row:        0,
-    col:        0,
-    worldX:     0,
-    worldZ:     0,
-    hopping:    false,
-    hopT:       0,
-    hopFrom:    null,
-    hopTo:      null,
-    hopDir:     null,
-    dead:       false,
-    deathAnim:  0,
-    onLog:      null,   // reference to log obstacle player is riding
-    logOffsetX: 0,      // player X offset from log centre at time of landing
-    invincible: 0,
+    row:             0,
+    col:             0,
+    worldX:          0,
+    worldZ:          0,
+    hopping:         false,
+    hopT:            0,
+    hopFrom:         null,
+    hopTo:           null,
+    hopDir:          null,
+    dead:            false,
+    deathAnim:       0,
+    onLog:           null,
+    logOffsetX:      0,
+    invincible:      0,
+    // Jetpack
+    jetpackActive:   false,  // currently flying
+    jetpackFlyT:     0,      // 0→1 flight progress
+    jetpackFlyFrom:  null,   // {x, z, row} at launch
+    jetpackFlyTo:    null,   // {x, z, row} at landing
+    jetpackLanes:    0,      // lanes to skip
   };
 
   // DOM refs
@@ -266,7 +282,7 @@
         });
       }
     } else {
-      // Grass — possibly add trees/bushes
+      // Grass — possibly add trees/bushes, and occasionally a jetpack pickup
       data.trees = [];
       if (row !== 0) {
         const treeChance = 0.5;
@@ -274,6 +290,19 @@
           if (Math.random() < treeChance * 0.22) {
             data.trees.push(c);
           }
+        }
+      }
+      // Jetpack spawn: only on grass rows after row 3, with set probability,
+      // and not on the same col as a tree.
+      data.jetpack = null;
+      if (row > 3 && Math.random() < JETPACK_SPAWN_CHANCE) {
+        // Pick a column that won't be blocked by a tree
+        const freeCols = [];
+        for (let c = -HALF_COLS + 2; c <= HALF_COLS - 2; c++) {
+          if (!data.trees.includes(c)) freeCols.push(c);
+        }
+        if (freeCols.length > 0) {
+          data.jetpack = freeCols[Math.floor(Math.random() * freeCols.length)];
         }
       }
     }
@@ -317,6 +346,22 @@
         group.add(obj);
         if (!data.blockedCols) data.blockedCols = new Set();
         data.blockedCols.add(col);
+      });
+    }
+
+    // Jetpack pickup
+    if (data.jetpack !== null && data.jetpack !== undefined) {
+      const pickupMesh = makeJetpackPickup();
+      pickupMesh.position.set(data.jetpack * TILE_SIZE, 0.3, z);
+      group.add(pickupMesh);
+      // Register in global pickup list
+      jetpackPickups.push({
+        row:       data.row,
+        col:       data.jetpack,
+        worldX:    data.jetpack * TILE_SIZE,
+        worldZ:    z,
+        mesh:      pickupMesh,
+        collected: false,
       });
     }
   }
@@ -426,6 +471,77 @@
     m.position.y = 0.16;
     m.castShadow = true;
     g.add(m);
+    return g;
+  }
+
+  // Jetpack pickup — a floating orange box with two fuel tanks and a glow ring.
+  // Bobs up and down and rotates slowly in updateJetpackPickups().
+  function makeJetpackPickup() {
+    const g = new THREE.Group();
+
+    // Main body — orange box
+    const bodyMat = new THREE.MeshLambertMaterial({ color: COLORS.jetpackBody });
+    const bodyGeo = new THREE.BoxGeometry(0.28, 0.36, 0.18);
+    const body    = new THREE.Mesh(bodyGeo, bodyMat);
+    body.castShadow = true;
+    g.add(body);
+
+    // Two fuel tanks on sides
+    const tankMat = new THREE.MeshLambertMaterial({ color: COLORS.jetpackTank });
+    [-1, 1].forEach(side => {
+      const tankGeo = new THREE.BoxGeometry(0.10, 0.30, 0.16);
+      const tank    = new THREE.Mesh(tankGeo, tankMat);
+      tank.position.set(side * 0.22, 0, 0);
+      g.add(tank);
+    });
+
+    // Nozzle flames — bright yellow at the bottom
+    const flameMat = new THREE.MeshBasicMaterial({ color: COLORS.jetpackFlame });
+    [-1, 1].forEach(side => {
+      const flameGeo = new THREE.BoxGeometry(0.08, 0.12, 0.10);
+      const flame    = new THREE.Mesh(flameGeo, flameMat);
+      flame.position.set(side * 0.22, -0.22, 0);
+      g.add(flame);
+    });
+
+    // Star/glow ring — flat bright ring around the pickup to draw attention
+    const ringMat = new THREE.MeshBasicMaterial({ color: COLORS.jetpackGlow, side: THREE.DoubleSide });
+    const ringGeo = new THREE.RingGeometry(0.38, 0.46, 8);
+    const ring    = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = -0.28;
+    g.add(ring);
+    g.userData.ring = ring;
+
+    return g;
+  }
+
+  // Jetpack prop worn on chicken's back during flight — smaller version
+  function makeJetpackProp() {
+    const g = new THREE.Group();
+    const bodyMat  = new THREE.MeshLambertMaterial({ color: COLORS.jetpackBody });
+    const tankMat  = new THREE.MeshLambertMaterial({ color: COLORS.jetpackTank });
+    const flameMat = new THREE.MeshBasicMaterial({ color: COLORS.jetpackFlame });
+
+    // Body
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.24, 0.10), bodyMat);
+    g.add(body);
+
+    // Tanks
+    [-1, 1].forEach(side => {
+      const tank = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.20, 0.10), tankMat);
+      tank.position.set(side * 0.14, 0, 0);
+      g.add(tank);
+    });
+
+    // Flames (animated in updatePlayer)
+    [-1, 1].forEach((side, i) => {
+      const flame = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.10, 0.08), flameMat);
+      flame.position.set(side * 0.14, -0.18, 0);
+      g.add(flame);
+      g.userData['flame' + i] = flame;
+    });
+
     return g;
   }
 
@@ -768,12 +884,18 @@
 
     buildInitialWorld();
 
-    playerState.dead       = false;
-    playerState.hopping    = false;
-    playerState.deathAnim  = 0;
-    playerState.onLog      = null;
-    playerState.logOffsetX = 0;
-    playerState.invincible = 1.0;
+    playerState.dead          = false;
+    playerState.hopping       = false;
+    playerState.deathAnim     = 0;
+    playerState.onLog         = null;
+    playerState.logOffsetX    = 0;
+    playerState.invincible    = 1.0;
+    playerState.jetpackActive = false;
+    playerState.jetpackFlyT   = 0;
+    jetpackPickups            = [];
+    // Hide jetpack HUD if lingering
+    const hud = document.getElementById('jetpack-hud');
+    if (hud) hud.style.display = 'none';
     gameState = 'playing';
     clock.getDelta(); // reset delta spike
   }
@@ -816,6 +938,86 @@
   // ─── Player Update ───────────────────────────────────────
   function updatePlayer(dt) {
     if (playerState.invincible > 0) playerState.invincible -= dt;
+
+    // ── Jetpack flight ──
+    if (playerState.jetpackActive) {
+      playerState.jetpackFlyT += dt / JETPACK_FLY_DURATION;
+
+      if (playerState.jetpackFlyT >= 1) {
+        // Landing
+        playerState.jetpackFlyT   = 1;
+        playerState.jetpackActive = false;
+
+        const to = playerState.jetpackFlyTo;
+        playerState.row    = to.row;
+        playerState.worldX = to.x;
+        playerState.worldZ = to.z;
+        playerState.col    = Math.round(to.x / TILE_SIZE);
+        player.position.set(to.x, 0, to.z);
+        player.rotation.y  = Math.PI; // face forward after landing
+
+        // Update score
+        if (playerState.row > maxRow) {
+          maxRow = playerState.row;
+          score  = maxRow;
+          scoreDisplay.textContent = score;
+        }
+
+        // Detach prop
+        if (player.userData.jetpackProp) {
+          player.userData.jetpackProp.visible = false;
+        }
+
+        // Hide HUD
+        const hud = document.getElementById('jetpack-hud');
+        if (hud) hud.style.display = 'none';
+
+        // Land on river? Check for log; otherwise safe (lands on solid ground guaranteed
+        // because we aim for the player's current X which could be river — treat as ground)
+        const lane = lanes[playerState.row + 1000];
+        if (lane && lane.type === LANE_TYPES.RIVER) {
+          const log = getLogUnderPlayer();
+          if (log) {
+            playerState.onLog      = log;
+            playerState.logOffsetX = playerState.worldX - log.mesh.position.x;
+          } else {
+            triggerDeath('water');
+          }
+        } else {
+          playerState.onLog      = null;
+          playerState.logOffsetX = 0;
+        }
+
+        cullOldLanes();
+        return;
+      }
+
+      const t     = playerState.jetpackFlyT;
+      const ease  = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // smooth in-out
+      const arc   = Math.sin(t * Math.PI) * JETPACK_FLY_HEIGHT;
+
+      playerState.worldX = lerp(playerState.jetpackFlyFrom.x, playerState.jetpackFlyTo.x, ease);
+      playerState.worldZ = lerp(playerState.jetpackFlyFrom.z, playerState.jetpackFlyTo.z, ease);
+
+      player.position.set(playerState.worldX, arc, playerState.worldZ);
+      player.rotation.y = Math.PI; // face forward during flight
+
+      // Tilt chicken forward during ascent, level off at top, tilt back on descent
+      player.rotation.x = Math.sin(t * Math.PI) * -0.35;
+
+      // Flicker jetpack flames
+      if (player.userData.jetpackProp) {
+        const prop   = player.userData.jetpackProp;
+        const flicker = 0.08 + Math.random() * 0.12;
+        if (prop.userData.flame0) prop.userData.flame0.scale.y = 1 + flicker;
+        if (prop.userData.flame1) prop.userData.flame1.scale.y = 1 + flicker;
+      }
+
+      return; // skip normal hop/log logic while flying
+    }
+
+    // Reset body tilt after jetpack
+    player.rotation.x = 0;
 
     // Death animation — chicken spins and shrinks
     if (playerState.dead) {
@@ -1019,7 +1221,6 @@
         laneObjects[idx] = undefined;
       }
       if (lanes[idx]) {
-        // Remove obstacle refs
         if (lanes[idx].obstacles) {
           lanes[idx].obstacles.forEach(obs => {
             const i = obstacles.indexOf(obs);
@@ -1028,7 +1229,81 @@
         }
         lanes[idx] = undefined;
       }
+      // Remove stale jetpack pickups for this row
+      for (let i = jetpackPickups.length - 1; i >= 0; i--) {
+        if (jetpackPickups[i].row === r) {
+          jetpackPickups.splice(i, 1);
+        }
+      }
     }
+  }
+
+  // ─── Jetpack Pickups Update ──────────────────────────────
+  function updateJetpackPickups(dt) {
+    const t = clock.elapsedTime;
+    jetpackPickups.forEach(p => {
+      if (p.collected || !p.mesh) return;
+      // Bob up and down
+      p.mesh.position.y = 0.3 + Math.sin(t * 2.5 + p.col) * 0.12;
+      // Slow spin
+      p.mesh.rotation.y = t * 1.4;
+      // Pulse the glow ring opacity
+      if (p.mesh.userData.ring) {
+        p.mesh.userData.ring.material.opacity = 0.5 + 0.5 * Math.sin(t * 3);
+        p.mesh.userData.ring.material.transparent = true;
+      }
+
+      // Collection check — player walks onto same tile
+      if (!playerState.dead && !playerState.jetpackActive && gameState === 'playing') {
+        const dx = Math.abs(playerState.worldX - p.worldX);
+        const dz = Math.abs(playerState.worldZ - p.worldZ);
+        if (dx < 0.6 && dz < 0.6) {
+          collectJetpack(p);
+        }
+      }
+    });
+  }
+
+  function collectJetpack(pickup) {
+    pickup.collected = true;
+    // Hide the pickup mesh
+    pickup.mesh.visible = false;
+
+    // Lanes to skip: 5–7
+    const lanes = 5 + Math.floor(Math.random() * 3);
+    activateJetpack(lanes);
+  }
+
+  function activateJetpack(lanesToSkip) {
+    const targetRow = playerState.row + lanesToSkip;
+    const fromZ     = playerState.worldZ;
+    const toZ       = -targetRow * LANE_WIDTH;
+
+    playerState.jetpackActive  = true;
+    playerState.jetpackFlyT    = 0;
+    playerState.jetpackLanes   = lanesToSkip;
+    playerState.jetpackFlyFrom = { x: playerState.worldX, z: fromZ, row: playerState.row };
+    playerState.jetpackFlyTo   = { x: playerState.worldX, z: toZ,   row: targetRow };
+
+    // Ensure world is generated far enough ahead
+    const needed = targetRow + GENERATE_AHEAD;
+    for (let r = getMaxGeneratedRow() + 1; r <= needed; r++) {
+      generateLane(r);
+    }
+
+    // Attach jetpack prop to player
+    if (!player.userData.jetpackProp) {
+      const prop = makeJetpackProp();
+      // Position behind and on the back of the chicken body
+      prop.position.set(0, 0.40, -0.25);
+      player.add(prop);
+      player.userData.jetpackProp = prop;
+    }
+    player.userData.jetpackProp.visible = true;
+
+    // Show HUD indicator
+    const hud = document.getElementById('jetpack-hud');
+    if (hud) hud.style.display = 'block';
   }
 
   // ─── Obstacles Update ────────────────────────────────────
@@ -1113,6 +1388,7 @@
     if (gameState === 'playing' || gameState === 'dead') {
       updatePlayer(dt);
       updateObstacles(dt);
+      updateJetpackPickups(dt);
       updateCamera(dt);
     }
     // When paused, still render but don't update game logic

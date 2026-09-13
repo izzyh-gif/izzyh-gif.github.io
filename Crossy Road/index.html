@@ -149,6 +149,11 @@
       to   { opacity: 1; transform: scale(1.0); }
     }
 
+    @keyframes jetpackPulse {
+      from { transform: scale(1.0); opacity: 0.85; }
+      to   { transform: scale(1.08); opacity: 1.0; }
+    }
+
     #wasted-screen h2 {
       font-family: 'Arial Black', 'Arial Rounded MT Bold', Arial, sans-serif;
       font-size: 80px;
@@ -195,6 +200,20 @@
     <h1>🐔 CROSSY ROAD</h1>
     <p class="subtitle">How far can you go?</p>
     <button class="btn" id="start-btn">PLAY</button>
+  </div>
+
+  <!-- Jetpack HUD indicator -->
+  <div id="jetpack-hud" style="display:none; position:fixed; top:90px; left:50%; transform:translateX(-50%); z-index:10; pointer-events:none; text-align:center;">
+    <span style="
+      font-family: 'Arial Black', 'Arial Rounded MT Bold', Arial, sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      color: #ff6600;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.7), 0 0 20px rgba(255,120,0,0.8);
+      letter-spacing: 3px;
+      animation: jetpackPulse 0.4s ease-in-out infinite alternate;
+      display: inline-block;
+    ">🚀 JETPACK!</span>
   </div>
 
   <!-- Wasted Screen -->
