@@ -130,7 +130,37 @@
       text-shadow: 0 2px 6px rgba(0,0,0,0.5);
     }
 
-    /* Controls hint */
+    /* Wasted screen */
+    #wasted-screen {
+      position: fixed;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0);
+      z-index: 25;
+      pointer-events: none;
+      animation: wastedFadeIn 0.25s ease forwards;
+    }
+
+    @keyframes wastedFadeIn {
+      from { opacity: 0; transform: scale(1.3); }
+      to   { opacity: 1; transform: scale(1.0); }
+    }
+
+    #wasted-screen h2 {
+      font-family: 'Arial Black', 'Arial Rounded MT Bold', Arial, sans-serif;
+      font-size: 80px;
+      font-weight: 900;
+      letter-spacing: 6px;
+      color: #ff2222;
+      text-shadow:
+        4px 4px 0 #880000,
+        0 0 30px rgba(255,0,0,0.6),
+        0 6px 16px rgba(0,0,0,0.8);
+      margin: 0;
+    }
     #controls-hint {
       position: fixed;
       bottom: 24px;
@@ -165,6 +195,11 @@
     <h1>🐔 CROSSY ROAD</h1>
     <p class="subtitle">How far can you go?</p>
     <button class="btn" id="start-btn">PLAY</button>
+  </div>
+
+  <!-- Wasted Screen -->
+  <div id="wasted-screen">
+    <h2>WASTED</h2>
   </div>
 
   <!-- Game Over Screen -->

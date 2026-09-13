@@ -461,50 +461,64 @@
   }
 
   // Car: coloured lower body + white/light upper cabin, pure voxel boxes.
-  // Matches reference: bright body colour, white roof, dark window slots.
+  // Wheels are flat dark boxes protruding slightly from the sides.
   // Bottom sits at y=0 on the road.
   function makeCar() {
-    const g        = new THREE.Group();
+    const g         = new THREE.Group();
     const bodyColor = COLORS.carColors[Math.floor(Math.random() * COLORS.carColors.length)];
-    const bodyMat  = new THREE.MeshLambertMaterial({ color: bodyColor });
-    const cabinMat = new THREE.MeshLambertMaterial({ color: COLORS.carCabin });
-    const darkMat  = new THREE.MeshLambertMaterial({ color: 0x222233 });
-    const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffcc });
+    const bodyMat   = new THREE.MeshLambertMaterial({ color: bodyColor });
+    const cabinMat  = new THREE.MeshLambertMaterial({ color: COLORS.carCabin });
+    const darkMat   = new THREE.MeshLambertMaterial({ color: 0x222233 });
+    const wheelMat  = new THREE.MeshLambertMaterial({ color: 0x1a1a2a });
+    const lightMat  = new THREE.MeshBasicMaterial({ color: 0xffffcc });
 
-    // Lower body — full width, sits on ground
-    const lowerGeo = new THREE.BoxGeometry(1.10, 0.30, 0.80);
+    // Lower body — sits on ground, y=0 to y=0.30
+    const lowerGeo = new THREE.BoxGeometry(1.10, 0.30, 0.72);
     const lower    = new THREE.Mesh(lowerGeo, bodyMat);
     lower.position.y = 0.15;
     lower.castShadow = true;
     g.add(lower);
 
     // Upper cabin — white, centred, narrower
-    const cabinGeo = new THREE.BoxGeometry(0.68, 0.28, 0.72);
+    const cabinGeo = new THREE.BoxGeometry(0.66, 0.28, 0.66);
     const cabin    = new THREE.Mesh(cabinGeo, cabinMat);
-    cabin.position.y = 0.30 + 0.14;
+    cabin.position.y = 0.44;
     cabin.castShadow = true;
     g.add(cabin);
 
-    // Window slots — dark rectangles inset on front and rear of cabin
-    const winH = 0.16, winD = 0.62;
-    [0.35, -0.35].forEach(x => {
-      const winGeo = new THREE.BoxGeometry(0.03, winH, winD);
-      const win    = new THREE.Mesh(winGeo, darkMat);
-      win.position.set(x, cabin.position.y, 0);
+    // Window slots — dark face on front (+X) and rear (-X) of cabin
+    const winGeo = new THREE.BoxGeometry(0.03, 0.18, 0.56);
+    [0.34, -0.34].forEach(x => {
+      const win = new THREE.Mesh(winGeo, darkMat);
+      win.position.set(x, 0.44, 0);
       g.add(win);
     });
 
     // Side window strips
-    const sideWinGeo = new THREE.BoxGeometry(0.60, 0.13, 0.03);
-    [-0.38, 0.38].forEach(z => {
+    const sideWinGeo = new THREE.BoxGeometry(0.58, 0.14, 0.03);
+    [-0.35, 0.35].forEach(z => {
       const sw = new THREE.Mesh(sideWinGeo, darkMat);
-      sw.position.set(0, cabin.position.y + 0.02, z);
+      sw.position.set(0, 0.44, z);
       g.add(sw);
     });
 
+    // Wheels — 4 flat dark boxes, one at each corner, protruding beyond body Z
+    // Each wheel: width along X (thin), height=0.18, depth along Z (slightly wider than body)
+    const wGeo = new THREE.BoxGeometry(0.20, 0.18, 0.10);
+    [
+      [ 0.36,  0.09,  0.42],
+      [ 0.36,  0.09, -0.42],
+      [-0.36,  0.09,  0.42],
+      [-0.36,  0.09, -0.42],
+    ].forEach(([x, y, z]) => {
+      const w = new THREE.Mesh(wGeo, wheelMat);
+      w.position.set(x, y, z);
+      g.add(w);
+    });
+
     // Headlights — small bright squares on front face (+X)
-    const litGeo = new THREE.BoxGeometry(0.04, 0.10, 0.14);
-    [-0.22, 0.22].forEach(z => {
+    const litGeo = new THREE.BoxGeometry(0.04, 0.10, 0.12);
+    [-0.20, 0.20].forEach(z => {
       const lit = new THREE.Mesh(litGeo, lightMat);
       lit.position.set(0.56, 0.18, z);
       g.add(lit);
@@ -513,79 +527,73 @@
     return g;
   }
 
-  // Truck: bright coloured cab + white cargo box.
-  // Total length ~2.3 units, matches reference semi style.
+  // Truck: bright coloured cab + white cargo box, with visible wheels.
   function makeTruck() {
     const g        = new THREE.Group();
     const cabColor = COLORS.truckCabColors[Math.floor(Math.random() * COLORS.truckCabColors.length)];
     const cabMat   = new THREE.MeshLambertMaterial({ color: cabColor });
     const cargoMat = new THREE.MeshLambertMaterial({ color: COLORS.truckCargo });
     const darkMat  = new THREE.MeshLambertMaterial({ color: 0x222233 });
+    const wheelMat = new THREE.MeshLambertMaterial({ color: 0x1a1a2a });
     const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffcc });
 
     // ── Cab (front, +X side) ──
-    // Cab lower body
-    const cabLowGeo = new THREE.BoxGeometry(0.72, 0.30, 0.80);
+    const cabLowGeo = new THREE.BoxGeometry(0.72, 0.30, 0.72);
     const cabLow    = new THREE.Mesh(cabLowGeo, cabMat);
     cabLow.position.set(0.80, 0.15, 0);
     cabLow.castShadow = true;
     g.add(cabLow);
 
-    // Cab upper / roof
-    const cabTopGeo = new THREE.BoxGeometry(0.64, 0.30, 0.72);
+    const cabTopGeo = new THREE.BoxGeometry(0.64, 0.30, 0.66);
     const cabTop    = new THREE.Mesh(cabTopGeo, cabMat);
     cabTop.position.set(0.80, 0.45, 0);
     cabTop.castShadow = true;
     g.add(cabTop);
 
-    // Cab windshield (dark slot on front face)
-    const windGeo = new THREE.BoxGeometry(0.04, 0.20, 0.64);
+    // Cab windshield
+    const windGeo = new THREE.BoxGeometry(0.04, 0.20, 0.58);
     const wind    = new THREE.Mesh(windGeo, darkMat);
     wind.position.set(1.13, 0.46, 0);
     g.add(wind);
 
     // Cab headlights
-    const litGeo = new THREE.BoxGeometry(0.04, 0.10, 0.14);
-    [-0.22, 0.22].forEach(z => {
+    const litGeo = new THREE.BoxGeometry(0.04, 0.10, 0.12);
+    [-0.20, 0.20].forEach(z => {
       const lit = new THREE.Mesh(litGeo, lightMat);
       lit.position.set(1.17, 0.16, z);
       g.add(lit);
     });
 
     // ── Cargo box (rear, -X side) ──
-    const cargoGeo = new THREE.BoxGeometry(1.44, 0.56, 0.78);
+    const cargoGeo = new THREE.BoxGeometry(1.44, 0.54, 0.74);
     const cargo    = new THREE.Mesh(cargoGeo, cargoMat);
-    cargo.position.set(-0.44, 0.28, 0);
+    cargo.position.set(-0.44, 0.27, 0);
     cargo.castShadow = true;
     g.add(cargo);
 
-    // Cargo shade stripe (slightly darker top edge)
-    const shadeGeo = new THREE.BoxGeometry(1.44, 0.06, 0.79);
+    // Cargo top shade stripe
+    const shadeGeo = new THREE.BoxGeometry(1.44, 0.06, 0.75);
     const shadeMat = new THREE.MeshLambertMaterial({ color: 0xccccdd });
     const shade    = new THREE.Mesh(shadeGeo, shadeMat);
-    shade.position.set(-0.44, 0.53, 0);
+    shade.position.set(-0.44, 0.51, 0);
     g.add(shade);
 
-    return g;
-  }
-
-  function makeLog(length) {
-    const g = new THREE.Group();
-    const geo = new THREE.CylinderGeometry(0.22, 0.22, length, 8);
-    const mat = new THREE.MeshLambertMaterial({ color: COLORS.log });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.z = Math.PI / 2;
-    mesh.castShadow = true;
-    g.add(mesh);
-
-    // End caps darker
-    const capGeo = new THREE.CircleGeometry(0.22, 8);
-    const capMat = new THREE.MeshLambertMaterial({ color: COLORS.logDark });
-    [-1, 1].forEach(side => {
-      const cap = new THREE.Mesh(capGeo, capMat);
-      cap.rotation.y = side === 1 ? 0 : Math.PI;
-      cap.position.x = side * length / 2;
-      g.add(cap);
+    // Wheels — 6 total: 2 under cab, 4 under cargo
+    const wGeo = new THREE.BoxGeometry(0.22, 0.18, 0.10);
+    [
+      // Cab axle
+      [ 0.80, 0.09,  0.42],
+      [ 0.80, 0.09, -0.42],
+      // Cargo front axle
+      [-0.10, 0.09,  0.42],
+      [-0.10, 0.09, -0.42],
+      // Cargo rear axle
+      [-0.80, 0.09,  0.42],
+      [-0.80, 0.09, -0.42],
+    ].forEach(([x, y, z]) => {
+      const w = new THREE.Mesh(wGeo, wheelMat);
+      w.position.set(x, y, z);
+      g.add(w);
     });
 
     return g;
@@ -754,6 +762,8 @@
     scoreDisplay.textContent = '0';
 
     gameoverScreen.style.display = 'none';
+    const wastedEl = document.getElementById('wasted-screen');
+    if (wastedEl) wastedEl.style.display = 'none';
     controlsHint.style.display   = 'block';
 
     buildInitialWorld();
@@ -778,9 +788,24 @@
 
     // Update best
     if (score > bestScore) bestScore = score;
+
+    // Show WASTED after a short delay so the spin animation plays first
+    setTimeout(() => {
+      const wastedEl = document.getElementById('wasted-screen');
+      if (wastedEl) {
+        // Reset animation so it plays fresh each death
+        wastedEl.style.animation = 'none';
+        wastedEl.offsetHeight;   // force reflow
+        wastedEl.style.animation = '';
+        wastedEl.style.display   = 'flex';
+      }
+    }, 300);
   }
 
   function showGameOver() {
+    // Hide wasted, show full game-over screen
+    const wastedEl = document.getElementById('wasted-screen');
+    if (wastedEl) wastedEl.style.display = 'none';
     finalScoreEl.textContent = 'Score: ' + score;
     bestScoreEl.textContent  = 'Best: ' + bestScore;
     gameoverScreen.style.display = 'flex';
@@ -846,8 +871,17 @@
       player.position.y = 0;
     }
 
-    // Clamp to grid bounds
-    if (playerState.worldX < -HALF_COLS * TILE_SIZE || playerState.worldX > HALF_COLS * TILE_SIZE) {
+    // Screen-edge death: kill player when they walk off the visible screen.
+    // Compute the visible half-width at ground level from the camera frustum.
+    const camZ   = camera.position.z;
+    const groundZ = playerState.worldZ;
+    const distToGround = Math.abs(camera.position.y); // approximate
+    const fovRad = THREE.MathUtils.degToRad(camera.fov);
+    const visibleHalfH = distToGround * Math.tan(fovRad / 2);
+    const visibleHalfW = visibleHalfH * camera.aspect;
+    const screenLeft  = camera.position.x - visibleHalfW - 0.5;
+    const screenRight = camera.position.x + visibleHalfW + 0.5;
+    if (playerState.worldX < screenLeft || playerState.worldX > screenRight) {
       triggerDeath('bounds');
     }
 
