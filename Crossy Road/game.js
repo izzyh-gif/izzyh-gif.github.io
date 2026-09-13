@@ -146,12 +146,12 @@
 
   // ─── Lighting ────────────────────────────────────────────
   function setupLighting() {
-    // Ambient
-    const ambient = new THREE.AmbientLight(0xffeedd, 0.7);
+    // Ambient — reduced intensity for less washed-out look
+    const ambient = new THREE.AmbientLight(0xddeeff, 0.45);
     scene.add(ambient);
 
-    // Main sun directional light
-    const sun = new THREE.DirectionalLight(0xfff4e0, 1.1);
+    // Main sun directional light — dimmer, cooler tone
+    const sun = new THREE.DirectionalLight(0xfff0cc, 0.75);
     sun.position.set(8, 16, 8);
     sun.castShadow = true;
     sun.shadow.mapSize.width  = 2048;
@@ -165,8 +165,8 @@
     sun.shadow.bias = -0.001;
     scene.add(sun);
 
-    // Soft fill from opposite side
-    const fill = new THREE.DirectionalLight(0xaaccff, 0.35);
+    // Soft fill from opposite side — kept subtle
+    const fill = new THREE.DirectionalLight(0x8899cc, 0.20);
     fill.position.set(-6, 8, -4);
     scene.add(fill);
   }
@@ -178,17 +178,16 @@
   }
 
   function updateCamera(dt) {
-    const targetZ = playerState.worldZ - 3;
-    const targetX = playerState.worldX * 0.3; // subtle x follow
-    const camTargetX = targetX;
-    const camTargetY = CAM_OFFSET.y;
+    // Camera only follows the player forward (Z axis). X is always fixed at 0
+    // so the view never tilts or shifts when the chicken moves sideways or turns.
+    const targetZ    = playerState.worldZ - 3;
     const camTargetZ = targetZ + CAM_OFFSET.z;
 
     const speed = 6;
-    camera.position.x += (camTargetX - camera.position.x) * Math.min(1, speed * dt);
-    camera.position.y += (camTargetY - camera.position.y) * Math.min(1, speed * dt);
+    camera.position.x  = 0;                        // always centred
+    camera.position.y  = CAM_OFFSET.y;             // fixed height
     camera.position.z += (camTargetZ - camera.position.z) * Math.min(1, speed * dt);
-    camera.lookAt(playerState.worldX, 0, targetZ - CAM_LOOK_AHEAD);
+    camera.lookAt(0, 0, targetZ - CAM_LOOK_AHEAD); // always look down the centre
   }
 
   // ─── World Generation ────────────────────────────────────
@@ -233,8 +232,8 @@
 
     if (type === LANE_TYPES.ROAD) {
       data.direction = Math.random() < 0.5 ? 1 : -1;
-      data.speed     = 2.5 + Math.random() * 3.5 + row * 0.03;
-      // More vehicles to fill the wider lane
+      // Slowed down: was 2.5–6.0, now 1.2–3.0
+      data.speed     = 1.2 + Math.random() * 1.8 + row * 0.015;
       const count = 4 + Math.floor(Math.random() * 4);
       const spacing = GRID_COLS / count;
       for (let i = 0; i < count; i++) {
@@ -250,7 +249,8 @@
       }
     } else if (type === LANE_TYPES.RIVER) {
       data.direction = Math.random() < 0.5 ? 1 : -1;
-      data.speed     = 1.5 + Math.random() * 2.0;
+      // Slowed down: was 1.5–3.5, now 0.7–1.6
+      data.speed     = 0.7 + Math.random() * 0.9;
       const count = 4 + Math.floor(Math.random() * 4);
       const spacing = GRID_COLS / count;
       for (let i = 0; i < count; i++) {
@@ -860,8 +860,11 @@
   }
 
   function tryHop(dr, dc) {
-    const newRow = playerState.row + dr;
-    const newCol = playerState.col + dc;
+    // Always work from a snapped integer column to prevent float drift
+    // breaking left/right movement after log-riding.
+    const currentCol = Math.round(playerState.col);
+    const newRow     = playerState.row + dr;
+    const newCol     = currentCol + dc;
 
     // Bounds check X
     if (newCol < -HALF_COLS || newCol > HALF_COLS) return;
@@ -875,10 +878,10 @@
 
     // Face direction of travel
     // Chicken default facing is +Z (toward camera). Row increases go away (-Z), so:
-    if (dr === 1)       player.rotation.y = Math.PI;        // forward = away from camera (-Z)
-    else if (dr === -1) player.rotation.y = 0;              // backward = toward camera (+Z)
-    else if (dc === -1) player.rotation.y = Math.PI / 2;   // left = -X
-    else if (dc === 1)  player.rotation.y = -Math.PI / 2;  // right = +X
+    if (dr === 1)       player.rotation.y = Math.PI;       // forward = away from camera
+    else if (dr === -1) player.rotation.y = 0;             // backward = toward camera
+    else if (dc === -1) player.rotation.y = Math.PI / 2;  // left = -X
+    else if (dc === 1)  player.rotation.y = -Math.PI / 2; // right = +X
 
     playerState.hopFrom = {
       x: playerState.worldX,
@@ -903,10 +906,10 @@
 
   function finishHop() {
     const dir = playerState.hopDir;
-    playerState.row += dir.dr;
+    playerState.row   += dir.dr;
     playerState.worldX = playerState.hopTo.x;
     playerState.worldZ = playerState.hopTo.z;
-    playerState.col    = Math.round(playerState.worldX / TILE_SIZE);
+    playerState.col    = Math.round(playerState.worldX / TILE_SIZE); // always integer
     player.position.set(playerState.worldX, 0, playerState.worldZ);
     playerState.hopping = false;
 
