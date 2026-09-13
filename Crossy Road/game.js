@@ -8,7 +8,7 @@
   // ─── Constants ───────────────────────────────────────────
   const TILE_SIZE      = 1;          // world units per grid cell
   const LANE_WIDTH     = TILE_SIZE;
-  const GRID_COLS      = 21;         // odd number so centre col exists
+  const GRID_COLS      = 51;         // wide enough to fill screen edge-to-edge
   const HALF_COLS      = Math.floor(GRID_COLS / 2);
   const VISIBLE_ROWS   = 20;         // how many rows to keep rendered ahead/behind
   const GENERATE_AHEAD = 15;         // generate this many rows ahead of player
@@ -22,17 +22,28 @@
   const LANE_TYPES = { GRASS: 'grass', ROAD: 'road', RIVER: 'river' };
 
   const COLORS = {
-    grass:        [0x5cb85c, 0x4cae4c, 0x3e9b3e],
-    grassDark:    [0x3e8c3e, 0x3a803a, 0x347034],
-    road:         0x555566,
+    // Grass — bright lime green like the reference
+    grass:        [0x74b944, 0x6aad3a, 0x7dc94e],
+    grassDark:    [0x5a9932, 0x518c2d, 0x62a63a],
+    // Road — blue-grey like the reference (not dark charcoal)
+    road:         0x8899aa,
+    roadDark:     0x7788999,
     roadLine:     0xffffff,
-    sidewalk:     0x888899,
-    water:        0x1a7abf,
-    waterDark:    0x1565a0,
-    log:          0x8B5E3C,
-    logDark:      0x6B4423,
-    carColors:    [0xe74c3c, 0x3498db, 0xf39c12, 0x9b59b6, 0x1abc9c, 0xe67e22],
-    truckColor:   [0xc0392b, 0x2980b9, 0xd35400],
+    sidewalk:     0xaabbcc,
+    // River — bright cyan-blue like the reference
+    water:        0x40c0e0,
+    waterDark:    0x30acd0,
+    // Logs — flat brown planks
+    log:          0x9b6b3a,
+    logTop:       0xb87c45,
+    logSide:      0x7a4f26,
+    // Car body colors — bright saturated like reference
+    carColors:    [0xe8d44d, 0x5bc95b, 0xe05252, 0x9b6bcc, 0xe87722, 0x4a9de8, 0xff6699],
+    carCabin:     0xeeeeff,   // white/light cabin on all cars
+    // Truck colors — cab is a bright color, cargo is always white
+    truckCabColors: [0xe05252, 0x4a9de8, 0x5bc95b, 0xe87722],
+    truckCargo:   0xeeeeff,
+    // Chicken
     chickenBody:  0xffffff,
     chickenBeak:  0xf39c12,
     chickenComb:  0xe74c3c,
@@ -40,12 +51,14 @@
     chickenFeet:  0xf39c12,
     chickenWing:  0xeeeeee,
     shadow:       0x000000,
-    sky:          0x87CEEB,
-    fogColor:     0x87CEEB,
-    tree:         0x2d7a2d,
-    treeDark:     0x1e5c1e,
-    treeTrunk:    0x8B4513,
-    bush:         0x3a9c3a,
+    // Sky / fog — match road blue-grey tone
+    sky:          0x99aabb,
+    fogColor:     0x99aabb,
+    // Trees — blocky bright green like reference, brown trunk
+    treeCube:     0x7dc93a,
+    treeCubeDark: 0x5fa828,
+    treeTrunk:    0x8B5a2a,
+    bush:         0x7dc93a,
   };
 
   // ─── State ───────────────────────────────────────────────
@@ -105,7 +118,7 @@
 
     // Scene
     scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(COLORS.fogColor, 12, 32);
+    scene.fog = new THREE.Fog(COLORS.fogColor, 18, 45);
     scene.background = new THREE.Color(COLORS.sky);
 
     // Camera — isometric-ish fixed-angle following camera
@@ -221,34 +234,34 @@
     if (type === LANE_TYPES.ROAD) {
       data.direction = Math.random() < 0.5 ? 1 : -1;
       data.speed     = 2.5 + Math.random() * 3.5 + row * 0.03;
-      // Spawn cars/trucks
-      const count = 2 + Math.floor(Math.random() * 3);
+      // More vehicles to fill the wider lane
+      const count = 4 + Math.floor(Math.random() * 4);
       const spacing = GRID_COLS / count;
       for (let i = 0; i < count; i++) {
         const isTruck = Math.random() < 0.25;
         data.obstacles.push({
-          type:      isTruck ? 'truck' : 'car',
-          col:       -HALF_COLS + i * spacing + (Math.random() - 0.5) * spacing * 0.5,
+          type:  isTruck ? 'truck' : 'car',
+          col:   -HALF_COLS + i * spacing + (Math.random() - 0.5) * spacing * 0.5,
           row,
-          speed:     data.speed * data.direction,
-          width:     isTruck ? 2.2 : 1.3,
-          mesh:      null,
+          speed: data.speed * data.direction,
+          width: isTruck ? 2.4 : 1.2,
+          mesh:  null,
         });
       }
     } else if (type === LANE_TYPES.RIVER) {
       data.direction = Math.random() < 0.5 ? 1 : -1;
       data.speed     = 1.5 + Math.random() * 2.0;
-      const count = 2 + Math.floor(Math.random() * 3);
+      const count = 4 + Math.floor(Math.random() * 4);
       const spacing = GRID_COLS / count;
       for (let i = 0; i < count; i++) {
-        const logLen = 1.8 + Math.random() * 1.4;
+        const logLen = 2.2 + Math.random() * 1.8;
         data.obstacles.push({
-          type:   'log',
-          col:    -HALF_COLS + i * spacing + (Math.random() - 0.5) * spacing * 0.5,
+          type:  'log',
+          col:   -HALF_COLS + i * spacing + (Math.random() - 0.5) * spacing * 0.5,
           row,
-          speed:  data.speed * data.direction,
-          width:  logLen,
-          mesh:   null,
+          speed: data.speed * data.direction,
+          width: logLen,
+          mesh:  null,
         });
       }
     } else {
@@ -284,7 +297,7 @@
 
   // ─── Lane Builders ───────────────────────────────────────
   function buildGrassLane(group, data, z) {
-    const colorArr = COLORS.grass;
+    const colorArr  = COLORS.grass;
     const baseColor = colorArr[Math.abs(data.row) % colorArr.length];
 
     const geo  = new THREE.BoxGeometry(GRID_COLS, 0.2, LANE_WIDTH);
@@ -297,11 +310,10 @@
     // Trees / bushes
     if (data.trees) {
       data.trees.forEach(col => {
-        const bush = Math.random() < 0.4;
-        const obj = bush ? makeBush() : makeTree();
+        const bush = Math.random() < 0.25;
+        const obj  = bush ? makeBush() : makeTree();
         obj.position.set(col * TILE_SIZE, 0, z);
         group.add(obj);
-        // Mark this column as blocked for player movement
         if (!data.blockedCols) data.blockedCols = new Set();
         data.blockedCols.add(col);
       });
@@ -309,7 +321,7 @@
   }
 
   function buildRoadLane(group, data, z) {
-    // Road surface
+    // Road surface — blue-grey
     const roadGeo = new THREE.BoxGeometry(GRID_COLS, 0.15, LANE_WIDTH);
     const roadMat = new THREE.MeshLambertMaterial({ color: COLORS.road });
     const road    = new THREE.Mesh(roadGeo, roadMat);
@@ -317,14 +329,15 @@
     road.receiveShadow = true;
     group.add(road);
 
-    // Dashed centre line
-    const dashCount = 10;
-    const dashW = 0.08, dashH = 0.005, dashD = 0.35;
+    // Dashed white centre line
+    const dashCount = Math.ceil(GRID_COLS / 2.2);
+    const dashW = 0.08, dashH = 0.005, dashD = 0.38;
     const dashMat = new THREE.MeshBasicMaterial({ color: COLORS.roadLine });
+    const dashSpacing = GRID_COLS / dashCount;
     for (let i = 0; i < dashCount; i++) {
       const dashGeo  = new THREE.BoxGeometry(dashW, dashH, dashD);
       const dashMesh = new THREE.Mesh(dashGeo, dashMat);
-      const xPos = -GRID_COLS / 2 + (i + 0.5) * (GRID_COLS / dashCount);
+      const xPos = -GRID_COLS / 2 + (i + 0.5) * dashSpacing;
       dashMesh.position.set(xPos, 0.001, z);
       group.add(dashMesh);
     }
@@ -341,16 +354,21 @@
   }
 
   function buildRiverLane(group, data, z) {
-    // Water surface — alternating tile colors
-    const tileW = 1;
-    for (let c = -HALF_COLS; c <= HALF_COLS; c++) {
-      const col  = (c + HALF_COLS) % 2 === 0 ? COLORS.water : COLORS.waterDark;
-      const geo  = new THREE.BoxGeometry(tileW, 0.12, LANE_WIDTH);
-      const mat  = new THREE.MeshLambertMaterial({ color: col });
-      const tile = new THREE.Mesh(geo, mat);
-      tile.position.set(c * tileW, -0.06, z);
-      tile.receiveShadow = true;
-      group.add(tile);
+    // Solid water surface — bright cyan-blue, full width
+    const waterGeo = new THREE.BoxGeometry(GRID_COLS, 0.12, LANE_WIDTH);
+    const waterMat = new THREE.MeshLambertMaterial({ color: COLORS.water });
+    const water    = new THREE.Mesh(waterGeo, waterMat);
+    water.position.set(0, -0.06, z);
+    water.receiveShadow = true;
+    group.add(water);
+
+    // Subtle shimmer strips (slightly darker horizontal bands)
+    const shimmerMat = new THREE.MeshLambertMaterial({ color: COLORS.waterDark });
+    for (let i = 0; i < 3; i++) {
+      const shimGeo  = new THREE.BoxGeometry(GRID_COLS, 0.005, 0.06);
+      const shim     = new THREE.Mesh(shimGeo, shimmerMat);
+      shim.position.set(0, 0.005, z + (i - 1) * 0.25);
+      group.add(shim);
     }
 
     // Logs
@@ -364,175 +382,188 @@
   }
 
   // ─── 3D Object Factories ─────────────────────────────────
-  // Crossy Road voxel style: pure box geometry, no cylinders.
-  // All vehicles are built so their bottom (y=0) rests on the road surface.
+  // Pure voxel style throughout — only BoxGeometry, matching Crossy Road reference.
+  // All objects sit with their base at y=0.
 
+  // Tree: brown rectangular trunk + stacked green cubes (no cones)
   function makeTree() {
     const g = new THREE.Group();
 
-    // Trunk
-    const trunkGeo = new THREE.CylinderGeometry(0.07, 0.1, 0.35, 6);
+    // Trunk — thin brown box
     const trunkMat = new THREE.MeshLambertMaterial({ color: COLORS.treeTrunk });
+    const trunkGeo = new THREE.BoxGeometry(0.20, 0.28, 0.20);
     const trunk    = new THREE.Mesh(trunkGeo, trunkMat);
-    trunk.position.y = 0.175;
+    trunk.position.y = 0.14;
     trunk.castShadow = true;
     g.add(trunk);
 
-    // Foliage layers
-    const colors = [COLORS.tree, COLORS.treeDark];
-    const layers = [
-      { r: 0.38, h: 0.5, y: 0.5 },
-      { r: 0.30, h: 0.45, y: 0.82 },
-      { r: 0.20, h: 0.38, y: 1.08 },
-    ];
-    layers.forEach((l, i) => {
-      const geo  = new THREE.ConeGeometry(l.r, l.h, 7);
-      const mat  = new THREE.MeshLambertMaterial({ color: colors[i % 2] });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.y = l.y;
-      mesh.castShadow = true;
-      g.add(mesh);
+    // Foliage — two stacked green cubes, slightly offset for depth
+    const topMat  = new THREE.MeshLambertMaterial({ color: COLORS.treeCube });
+    const topMat2 = new THREE.MeshLambertMaterial({ color: COLORS.treeCubeDark });
+
+    // Bottom foliage block (wider)
+    const bot    = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.42, 0.56), topMat);
+    bot.position.y = 0.49;
+    bot.castShadow = true;
+    g.add(bot);
+
+    // Top foliage block (narrower)
+    const top    = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.36, 0.40), topMat2);
+    top.position.y = 0.88;
+    top.castShadow = true;
+    g.add(top);
+
+    return g;
+  }
+
+  // Bush: a single squat green cube
+  function makeBush() {
+    const g   = new THREE.Group();
+    const mat = new THREE.MeshLambertMaterial({ color: COLORS.bush });
+    const geo = new THREE.BoxGeometry(0.46, 0.32, 0.46);
+    const m   = new THREE.Mesh(geo, mat);
+    m.position.y = 0.16;
+    m.castShadow = true;
+    g.add(m);
+    return g;
+  }
+
+  // Log: a flat brown rectangular plank (BoxGeometry, NOT a cylinder).
+  // In the reference, logs are clearly wide flat planks, not round logs.
+  function makeLog(length) {
+    const g = new THREE.Group();
+
+    // Main plank — flat box, travels along X axis
+    const mainGeo = new THREE.BoxGeometry(length, 0.22, 0.72);
+    const mainMat = new THREE.MeshLambertMaterial({ color: COLORS.log });
+    const main    = new THREE.Mesh(mainGeo, mainMat);
+    main.castShadow = true;
+    g.add(main);
+
+    // Top face slightly lighter
+    const topGeo = new THREE.BoxGeometry(length, 0.02, 0.72);
+    const topMat = new THREE.MeshLambertMaterial({ color: COLORS.logTop });
+    const top    = new THREE.Mesh(topGeo, topMat);
+    top.position.y = 0.12;
+    g.add(top);
+
+    // End caps darker
+    const capMat = new THREE.MeshLambertMaterial({ color: COLORS.logSide });
+    [-1, 1].forEach(side => {
+      const capGeo = new THREE.BoxGeometry(0.04, 0.22, 0.72);
+      const cap    = new THREE.Mesh(capGeo, capMat);
+      cap.position.x = side * (length / 2 + 0.02);
+      g.add(cap);
     });
 
     return g;
   }
 
-  function makeBush() {
-    const g = new THREE.Group();
-    const geo = new THREE.SphereGeometry(0.28, 7, 5);
-    const mat = new THREE.MeshLambertMaterial({ color: COLORS.bush });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.scale.y = 0.75;
-    mesh.position.y = 0.21;
-    mesh.castShadow = true;
-    g.add(mesh);
-    return g;
-  }
-
-  // makeCar: voxel-style car matching Crossy Road reference.
-  // Dimensions chosen to fit within a 1-unit lane (Z axis).
-  // The car travels along the X axis; Z is the lane width.
-  // Bottom of car = y=0 (road surface).
+  // Car: coloured lower body + white/light upper cabin, pure voxel boxes.
+  // Matches reference: bright body colour, white roof, dark window slots.
+  // Bottom sits at y=0 on the road.
   function makeCar() {
-    const g = new THREE.Group();
-    const color = COLORS.carColors[Math.floor(Math.random() * COLORS.carColors.length)];
-    const bodyMat  = new THREE.MeshLambertMaterial({ color });
-    const darkMat  = new THREE.MeshLambertMaterial({ color: 0x222222 });
-    const glassMat = new THREE.MeshLambertMaterial({ color: 0x88ccff });
+    const g        = new THREE.Group();
+    const bodyColor = COLORS.carColors[Math.floor(Math.random() * COLORS.carColors.length)];
+    const bodyMat  = new THREE.MeshLambertMaterial({ color: bodyColor });
+    const cabinMat = new THREE.MeshLambertMaterial({ color: COLORS.carCabin });
+    const darkMat  = new THREE.MeshLambertMaterial({ color: 0x222233 });
     const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffcc });
 
-    // ── Wheel base (dark low slab, full width, sits on ground) ──
-    // This is the wide bottom part that includes where the wheels would be.
-    // w=1.1 (along X/travel), h=0.18, d=0.78 (lane width)
-    const baseGeo  = new THREE.BoxGeometry(1.10, 0.18, 0.78);
-    const base     = new THREE.Mesh(baseGeo, darkMat);
-    base.position.y = 0.09;   // half height = sits on y=0
-    base.castShadow = true;
-    g.add(base);
+    // Lower body — full width, sits on ground
+    const lowerGeo = new THREE.BoxGeometry(1.10, 0.30, 0.80);
+    const lower    = new THREE.Mesh(lowerGeo, bodyMat);
+    lower.position.y = 0.15;
+    lower.castShadow = true;
+    g.add(lower);
 
-    // ── Wheel arches cutout illusion: darker inset strips on sides ──
-    // Two thin dark rectangles on each Z-face to fake wheel-well gaps
-    const archMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
-    [-1, 1].forEach(side => {
-      // front arch
-      const archF = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.02), archMat);
-      archF.position.set(0.28, 0.12, side * 0.40);
-      g.add(archF);
-      // rear arch
-      const archR = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.02), archMat);
-      archR.position.set(-0.28, 0.12, side * 0.40);
-      g.add(archR);
-    });
-
-    // ── Main body (coloured box on top of base) ──
-    // w=1.0, h=0.22, d=0.72
-    const carBodyGeo = new THREE.BoxGeometry(1.00, 0.22, 0.72);
-    const carBody    = new THREE.Mesh(carBodyGeo, bodyMat);
-    carBody.position.y = 0.18 + 0.11;  // sits on top of base
-    carBody.castShadow = true;
-    g.add(carBody);
-
-    // ── Cabin (smaller box centred on body) ──
-    const cabinGeo = new THREE.BoxGeometry(0.56, 0.22, 0.64);
-    const cabin    = new THREE.Mesh(cabinGeo, bodyMat);
-    cabin.position.y = 0.18 + 0.22 + 0.11;
+    // Upper cabin — white, centred, narrower
+    const cabinGeo = new THREE.BoxGeometry(0.68, 0.28, 0.72);
+    const cabin    = new THREE.Mesh(cabinGeo, cabinMat);
+    cabin.position.y = 0.30 + 0.14;
     cabin.castShadow = true;
     g.add(cabin);
 
-    // ── Windshields (glass on front & rear of cabin) ──
-    const windH = 0.18, windD = 0.60;
-    const windGeo = new THREE.BoxGeometry(0.04, windH, windD);
-    const windF = new THREE.Mesh(windGeo, glassMat);
-    windF.position.set(0.30, cabin.position.y, 0);
-    g.add(windF);
-    const windR = windF.clone();
-    windR.position.set(-0.30, cabin.position.y, 0);
-    g.add(windR);
+    // Window slots — dark rectangles inset on front and rear of cabin
+    const winH = 0.16, winD = 0.62;
+    [0.35, -0.35].forEach(x => {
+      const winGeo = new THREE.BoxGeometry(0.03, winH, winD);
+      const win    = new THREE.Mesh(winGeo, darkMat);
+      win.position.set(x, cabin.position.y, 0);
+      g.add(win);
+    });
 
-    // ── Headlights (front face, +X direction) ──
-    const litGeo = new THREE.BoxGeometry(0.04, 0.09, 0.13);
-    [-0.20, 0.20].forEach(z => {
+    // Side window strips
+    const sideWinGeo = new THREE.BoxGeometry(0.60, 0.13, 0.03);
+    [-0.38, 0.38].forEach(z => {
+      const sw = new THREE.Mesh(sideWinGeo, darkMat);
+      sw.position.set(0, cabin.position.y + 0.02, z);
+      g.add(sw);
+    });
+
+    // Headlights — small bright squares on front face (+X)
+    const litGeo = new THREE.BoxGeometry(0.04, 0.10, 0.14);
+    [-0.22, 0.22].forEach(z => {
       const lit = new THREE.Mesh(litGeo, lightMat);
-      lit.position.set(0.52, 0.32, z);
+      lit.position.set(0.56, 0.18, z);
       g.add(lit);
     });
 
     return g;
   }
 
-  // makeTruck: cab + long cargo box, voxel style.
-  // Total length ~2.2 units so it's clearly bigger than a car.
+  // Truck: bright coloured cab + white cargo box.
+  // Total length ~2.3 units, matches reference semi style.
   function makeTruck() {
-    const g = new THREE.Group();
-    const cabColor   = COLORS.truckColor[Math.floor(Math.random() * COLORS.truckColor.length)];
-    const cabMat     = new THREE.MeshLambertMaterial({ color: cabColor });
-    const cargoMat   = new THREE.MeshLambertMaterial({ color: 0xdddddd });
-    const darkMat    = new THREE.MeshLambertMaterial({ color: 0x222222 });
-    const glassMat   = new THREE.MeshLambertMaterial({ color: 0x88ccff });
-    const lightMat   = new THREE.MeshBasicMaterial({ color: 0xffffcc });
-
-    // ── Shared wheel base (full length) ──
-    const baseGeo = new THREE.BoxGeometry(2.20, 0.18, 0.78);
-    const base    = new THREE.Mesh(baseGeo, darkMat);
-    base.position.y = 0.09;
-    base.castShadow = true;
-    g.add(base);
+    const g        = new THREE.Group();
+    const cabColor = COLORS.truckCabColors[Math.floor(Math.random() * COLORS.truckCabColors.length)];
+    const cabMat   = new THREE.MeshLambertMaterial({ color: cabColor });
+    const cargoMat = new THREE.MeshLambertMaterial({ color: COLORS.truckCargo });
+    const darkMat  = new THREE.MeshLambertMaterial({ color: 0x222233 });
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffcc });
 
     // ── Cab (front, +X side) ──
-    const cabW = 0.70;
-    const cabGeo = new THREE.BoxGeometry(cabW, 0.48, 0.72);
-    const cab    = new THREE.Mesh(cabGeo, cabMat);
-    cab.position.set(0.76, 0.18 + 0.24, 0);
-    cab.castShadow = true;
-    g.add(cab);
+    // Cab lower body
+    const cabLowGeo = new THREE.BoxGeometry(0.72, 0.30, 0.80);
+    const cabLow    = new THREE.Mesh(cabLowGeo, cabMat);
+    cabLow.position.set(0.80, 0.15, 0);
+    cabLow.castShadow = true;
+    g.add(cabLow);
 
-    // Cab windshield
-    const windGeo = new THREE.BoxGeometry(0.04, 0.20, 0.66);
-    const windF   = new THREE.Mesh(windGeo, glassMat);
-    windF.position.set(cab.position.x + cabW / 2, cab.position.y, 0);
-    g.add(windF);
+    // Cab upper / roof
+    const cabTopGeo = new THREE.BoxGeometry(0.64, 0.30, 0.72);
+    const cabTop    = new THREE.Mesh(cabTopGeo, cabMat);
+    cabTop.position.set(0.80, 0.45, 0);
+    cabTop.castShadow = true;
+    g.add(cabTop);
+
+    // Cab windshield (dark slot on front face)
+    const windGeo = new THREE.BoxGeometry(0.04, 0.20, 0.64);
+    const wind    = new THREE.Mesh(windGeo, darkMat);
+    wind.position.set(1.13, 0.46, 0);
+    g.add(wind);
 
     // Cab headlights
-    const litGeo = new THREE.BoxGeometry(0.04, 0.09, 0.13);
-    [-0.20, 0.20].forEach(z => {
+    const litGeo = new THREE.BoxGeometry(0.04, 0.10, 0.14);
+    [-0.22, 0.22].forEach(z => {
       const lit = new THREE.Mesh(litGeo, lightMat);
-      lit.position.set(1.12, 0.32, z);
+      lit.position.set(1.17, 0.16, z);
       g.add(lit);
     });
 
     // ── Cargo box (rear, -X side) ──
-    const cargoGeo = new THREE.BoxGeometry(1.40, 0.52, 0.72);
+    const cargoGeo = new THREE.BoxGeometry(1.44, 0.56, 0.78);
     const cargo    = new THREE.Mesh(cargoGeo, cargoMat);
-    cargo.position.set(-0.40, 0.18 + 0.26, 0);
+    cargo.position.set(-0.44, 0.28, 0);
     cargo.castShadow = true;
     g.add(cargo);
 
-    // Cargo stripe detail
-    const stripeMat = new THREE.MeshLambertMaterial({ color: 0xbbbbbb });
-    const stripeGeo = new THREE.BoxGeometry(1.42, 0.05, 0.73);
-    const stripe    = new THREE.Mesh(stripeGeo, stripeMat);
-    stripe.position.set(-0.40, cargo.position.y + 0.10, 0);
-    g.add(stripe);
+    // Cargo shade stripe (slightly darker top edge)
+    const shadeGeo = new THREE.BoxGeometry(1.44, 0.06, 0.79);
+    const shadeMat = new THREE.MeshLambertMaterial({ color: 0xccccdd });
+    const shade    = new THREE.Mesh(shadeGeo, shadeMat);
+    shade.position.set(-0.44, 0.53, 0);
+    g.add(shade);
 
     return g;
   }
@@ -951,7 +982,7 @@
 
   // ─── Obstacles Update ────────────────────────────────────
   function updateObstacles(dt) {
-    const bound = (HALF_COLS + 3) * TILE_SIZE;
+    const bound = (HALF_COLS + 4) * TILE_SIZE;
 
     obstacles.forEach(obs => {
       if (!obs.mesh) return;
