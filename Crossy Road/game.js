@@ -219,7 +219,8 @@
     if (lanes[row + 1000] !== undefined) return; // already generated
 
     let type;
-    if (row <= 0) {
+    if (row <= 0 || row <= 3) {
+      // Rows 0–3 are always grass: safe starting area and tutorial jetpack zone
       type = LANE_TYPES.GRASS;
     } else {
       // Weight probabilities
