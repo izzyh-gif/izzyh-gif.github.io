@@ -80,19 +80,20 @@
   let inputQueue = [];       // queued hop directions
 
   let playerState = {
-    row:      0,
-    col:      0,
-    worldX:   0,
-    worldZ:   0,
-    hopping:  false,
-    hopT:     0,
-    hopFrom:  null,
-    hopTo:    null,
-    hopDir:   null,
-    dead:     false,
-    deathAnim: 0,
-    onLog:    null,          // reference to log object player is riding
-    invincible: 0,           // brief invincibility after spawn
+    row:        0,
+    col:        0,
+    worldX:     0,
+    worldZ:     0,
+    hopping:    false,
+    hopT:       0,
+    hopFrom:    null,
+    hopTo:      null,
+    hopDir:     null,
+    dead:       false,
+    deathAnim:  0,
+    onLog:      null,   // reference to log obstacle player is riding
+    logOffsetX: 0,      // player X offset from log centre at time of landing
+    invincible: 0,
   };
 
   // DOM refs
@@ -757,9 +758,11 @@
 
     buildInitialWorld();
 
-    playerState.dead = false;
-    playerState.hopping = false;
-    playerState.deathAnim = 0;
+    playerState.dead       = false;
+    playerState.hopping    = false;
+    playerState.deathAnim  = 0;
+    playerState.onLog      = null;
+    playerState.logOffsetX = 0;
     playerState.invincible = 1.0;
     gameState = 'playing';
     clock.getDelta(); // reset delta spike
@@ -829,15 +832,15 @@
         player.userData.head.position.y = player.userData.headBaseY + arc * 0.15;
       }
     } else {
-      // Riding a log — track player with the log's world X position
+      // Riding a log — move player by the same delta the log moved this frame.
+      // We store the offset from the log centre at landing, so the player keeps
+      // their position on the log rather than snapping to its centre.
       if (playerState.onLog) {
         const logObs = playerState.onLog;
         if (logObs.mesh) {
-          // obs.mesh.position.x is the local position within its lane group
-          // The lane group itself is at x=0, so world X == mesh local X
-          playerState.worldX  = logObs.mesh.position.x;
+          playerState.worldX  = logObs.mesh.position.x + playerState.logOffsetX;
           player.position.x   = playerState.worldX;
-          playerState.col     = Math.round(playerState.worldX / TILE_SIZE);
+          playerState.col     = playerState.worldX / TILE_SIZE; // keep as float while riding
         }
       }
       player.position.y = 0;
@@ -876,12 +879,17 @@
     // Prevent stepping backward off spawn
     if (newRow < -4) return;
 
-    // Face direction of travel
-    // Chicken default facing is +Z (toward camera). Row increases go away (-Z), so:
-    if (dr === 1)       player.rotation.y = Math.PI;       // forward = away from camera
-    else if (dr === -1) player.rotation.y = 0;             // backward = toward camera
-    else if (dc === -1) player.rotation.y = Math.PI / 2;  // left = -X
-    else if (dc === 1)  player.rotation.y = -Math.PI / 2; // right = +X
+    // Face direction of travel.
+    // Chicken default facing = +Z (toward camera = down-screen).
+    // Camera looks from +Z toward -Z, so screen-up = world -Z.
+    //   Up   (dr=1,  -Z)  → face -Z → rotate π
+    //   Down (dr=-1, +Z)  → face +Z → rotate 0
+    //   Left (dc=-1, -X)  → face -X → rotate -π/2
+    //   Right(dc=1,  +X)  → face +X → rotate +π/2
+    if      (dr ===  1) player.rotation.y =  Math.PI;
+    else if (dr === -1) player.rotation.y =  0;
+    else if (dc === -1) player.rotation.y = -Math.PI / 2;
+    else if (dc ===  1) player.rotation.y =  Math.PI / 2;
 
     playerState.hopFrom = {
       x: playerState.worldX,
@@ -891,10 +899,11 @@
       x: newCol * TILE_SIZE,
       z: -newRow * LANE_WIDTH,
     };
-    playerState.hopping = true;
-    playerState.hopT    = 0;
-    playerState.hopDir  = { dr, dc };
-    playerState.onLog   = null; // will re-check on land
+    playerState.hopping    = true;
+    playerState.hopT       = 0;
+    playerState.hopDir     = { dr, dc };
+    playerState.onLog      = null;      // stop log-riding during the hop
+    playerState.logOffsetX = 0;
 
     // Generate more world ahead if needed
     if (newRow + GENERATE_AHEAD > getMaxGeneratedRow()) {
@@ -925,12 +934,17 @@
     if (lane && lane.type === LANE_TYPES.RIVER) {
       const log = getLogUnderPlayer();
       if (log) {
-        playerState.onLog = log;
+        playerState.onLog     = log;
+        // Record how far the player landed from the log's centre.
+        // This offset is preserved as the log moves, so the player rides
+        // at their actual landing position rather than snapping to centre.
+        playerState.logOffsetX = playerState.worldX - log.mesh.position.x;
       } else {
         triggerDeath('water');
       }
     } else {
-      playerState.onLog = null;
+      playerState.onLog      = null;
+      playerState.logOffsetX = 0;
     }
 
     // Clean up old lanes far behind
@@ -1039,14 +1053,13 @@
       const lane = lanes[playerState.row + 1000];
       if (lane && lane.type === LANE_TYPES.RIVER) {
         if (playerState.onLog) {
-          // Still on log?
+          // Still on log? Player can move along the log but must stay within its span.
           const log = playerState.onLog;
           if (log.mesh) {
-            const logWorldX = log.mesh.position.x; // lane group is at x=0
+            const logWorldX = log.mesh.position.x;
             const halfW = log.width / 2;
-            if (playerState.worldX < logWorldX - halfW - 0.2 ||
-                playerState.worldX > logWorldX + halfW + 0.2) {
-              // Fell off
+            if (playerState.worldX < logWorldX - halfW - 0.15 ||
+                playerState.worldX > logWorldX + halfW + 0.15) {
               triggerDeath('water');
             }
           }
