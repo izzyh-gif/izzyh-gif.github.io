@@ -51,7 +51,8 @@
   // ─── State ───────────────────────────────────────────────
   let scene, camera, renderer;
   let clock;
-  let gameState = 'start';   // 'start' | 'playing' | 'dead' | 'gameover'
+  let gameState = 'start';   // 'start' | 'playing' | 'paused' | 'dead' | 'gameover'
+  let prevGameState = 'playing'; // state before pause
 
   let player;
   let score      = 0;
@@ -363,6 +364,9 @@
   }
 
   // ─── 3D Object Factories ─────────────────────────────────
+  // Crossy Road voxel style: pure box geometry, no cylinders.
+  // All vehicles are built so their bottom (y=0) rests on the road surface.
+
   function makeTree() {
     const g = new THREE.Group();
 
@@ -405,96 +409,132 @@
     return g;
   }
 
+  // makeCar: voxel-style car matching Crossy Road reference.
+  // Dimensions chosen to fit within a 1-unit lane (Z axis).
+  // The car travels along the X axis; Z is the lane width.
+  // Bottom of car = y=0 (road surface).
   function makeCar() {
     const g = new THREE.Group();
     const color = COLORS.carColors[Math.floor(Math.random() * COLORS.carColors.length)];
+    const bodyMat  = new THREE.MeshLambertMaterial({ color });
+    const darkMat  = new THREE.MeshLambertMaterial({ color: 0x222222 });
+    const glassMat = new THREE.MeshLambertMaterial({ color: 0x88ccff });
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffcc });
 
-    // Body lower
-    const bodyLowGeo = new THREE.BoxGeometry(1.2, 0.22, 0.7);
-    const bodyMat    = new THREE.MeshLambertMaterial({ color });
-    const bodyLow    = new THREE.Mesh(bodyLowGeo, bodyMat);
-    bodyLow.position.y = 0.22;
-    bodyLow.castShadow = true;
-    g.add(bodyLow);
+    // ── Wheel base (dark low slab, full width, sits on ground) ──
+    // This is the wide bottom part that includes where the wheels would be.
+    // w=1.1 (along X/travel), h=0.18, d=0.78 (lane width)
+    const baseGeo  = new THREE.BoxGeometry(1.10, 0.18, 0.78);
+    const base     = new THREE.Mesh(baseGeo, darkMat);
+    base.position.y = 0.09;   // half height = sits on y=0
+    base.castShadow = true;
+    g.add(base);
 
-    // Body upper (cabin)
-    const bodyTopGeo = new THREE.BoxGeometry(0.72, 0.2, 0.62);
-    const bodyTop    = new THREE.Mesh(bodyTopGeo, bodyMat);
-    bodyTop.position.set(0.0, 0.43, 0);
-    bodyTop.castShadow = true;
-    g.add(bodyTop);
+    // ── Wheel arches cutout illusion: darker inset strips on sides ──
+    // Two thin dark rectangles on each Z-face to fake wheel-well gaps
+    const archMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    [-1, 1].forEach(side => {
+      // front arch
+      const archF = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.02), archMat);
+      archF.position.set(0.28, 0.12, side * 0.40);
+      g.add(archF);
+      // rear arch
+      const archR = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.02), archMat);
+      archR.position.set(-0.28, 0.12, side * 0.40);
+      g.add(archR);
+    });
 
-    // Windshield (slightly tinted)
-    const windGeo = new THREE.BoxGeometry(0.04, 0.16, 0.56);
-    const windMat = new THREE.MeshLambertMaterial({ color: 0x88ccff, transparent: true, opacity: 0.7 });
-    const windF   = new THREE.Mesh(windGeo, windMat);
-    windF.position.set(0.37, 0.43, 0);
+    // ── Main body (coloured box on top of base) ──
+    // w=1.0, h=0.22, d=0.72
+    const carBodyGeo = new THREE.BoxGeometry(1.00, 0.22, 0.72);
+    const carBody    = new THREE.Mesh(carBodyGeo, bodyMat);
+    carBody.position.y = 0.18 + 0.11;  // sits on top of base
+    carBody.castShadow = true;
+    g.add(carBody);
+
+    // ── Cabin (smaller box centred on body) ──
+    const cabinGeo = new THREE.BoxGeometry(0.56, 0.22, 0.64);
+    const cabin    = new THREE.Mesh(cabinGeo, bodyMat);
+    cabin.position.y = 0.18 + 0.22 + 0.11;
+    cabin.castShadow = true;
+    g.add(cabin);
+
+    // ── Windshields (glass on front & rear of cabin) ──
+    const windH = 0.18, windD = 0.60;
+    const windGeo = new THREE.BoxGeometry(0.04, windH, windD);
+    const windF = new THREE.Mesh(windGeo, glassMat);
+    windF.position.set(0.30, cabin.position.y, 0);
     g.add(windF);
     const windR = windF.clone();
-    windR.position.set(-0.37, 0.43, 0);
+    windR.position.set(-0.30, cabin.position.y, 0);
     g.add(windR);
 
-    // Wheels
-    addWheels(g, 1.15, 0.34);
-
-    // Headlights
-    addLights(g, 1.2, 0.25, color);
+    // ── Headlights (front face, +X direction) ──
+    const litGeo = new THREE.BoxGeometry(0.04, 0.09, 0.13);
+    [-0.20, 0.20].forEach(z => {
+      const lit = new THREE.Mesh(litGeo, lightMat);
+      lit.position.set(0.52, 0.32, z);
+      g.add(lit);
+    });
 
     return g;
   }
 
+  // makeTruck: cab + long cargo box, voxel style.
+  // Total length ~2.2 units so it's clearly bigger than a car.
   function makeTruck() {
     const g = new THREE.Group();
-    const color = COLORS.truckColor[Math.floor(Math.random() * COLORS.truckColor.length)];
+    const cabColor   = COLORS.truckColor[Math.floor(Math.random() * COLORS.truckColor.length)];
+    const cabMat     = new THREE.MeshLambertMaterial({ color: cabColor });
+    const cargoMat   = new THREE.MeshLambertMaterial({ color: 0xdddddd });
+    const darkMat    = new THREE.MeshLambertMaterial({ color: 0x222222 });
+    const glassMat   = new THREE.MeshLambertMaterial({ color: 0x88ccff });
+    const lightMat   = new THREE.MeshBasicMaterial({ color: 0xffffcc });
 
-    // Cab
-    const cabGeo = new THREE.BoxGeometry(0.75, 0.44, 0.72);
-    const cabMat = new THREE.MeshLambertMaterial({ color });
+    // ── Shared wheel base (full length) ──
+    const baseGeo = new THREE.BoxGeometry(2.20, 0.18, 0.78);
+    const base    = new THREE.Mesh(baseGeo, darkMat);
+    base.position.y = 0.09;
+    base.castShadow = true;
+    g.add(base);
+
+    // ── Cab (front, +X side) ──
+    const cabW = 0.70;
+    const cabGeo = new THREE.BoxGeometry(cabW, 0.48, 0.72);
     const cab    = new THREE.Mesh(cabGeo, cabMat);
-    cab.position.set(0.65, 0.32, 0);
+    cab.position.set(0.76, 0.18 + 0.24, 0);
     cab.castShadow = true;
     g.add(cab);
 
-    // Cargo box
-    const cargoGeo = new THREE.BoxGeometry(1.4, 0.5, 0.7);
-    const cargoMat = new THREE.MeshLambertMaterial({ color: 0xcccccc });
+    // Cab windshield
+    const windGeo = new THREE.BoxGeometry(0.04, 0.20, 0.66);
+    const windF   = new THREE.Mesh(windGeo, glassMat);
+    windF.position.set(cab.position.x + cabW / 2, cab.position.y, 0);
+    g.add(windF);
+
+    // Cab headlights
+    const litGeo = new THREE.BoxGeometry(0.04, 0.09, 0.13);
+    [-0.20, 0.20].forEach(z => {
+      const lit = new THREE.Mesh(litGeo, lightMat);
+      lit.position.set(1.12, 0.32, z);
+      g.add(lit);
+    });
+
+    // ── Cargo box (rear, -X side) ──
+    const cargoGeo = new THREE.BoxGeometry(1.40, 0.52, 0.72);
     const cargo    = new THREE.Mesh(cargoGeo, cargoMat);
-    cargo.position.set(-0.45, 0.35, 0);
+    cargo.position.set(-0.40, 0.18 + 0.26, 0);
     cargo.castShadow = true;
     g.add(cargo);
 
-    addWheels(g, 2.1, 0.35);
-    addLights(g, 1.03, 0.3, color);
+    // Cargo stripe detail
+    const stripeMat = new THREE.MeshLambertMaterial({ color: 0xbbbbbb });
+    const stripeGeo = new THREE.BoxGeometry(1.42, 0.05, 0.73);
+    const stripe    = new THREE.Mesh(stripeGeo, stripeMat);
+    stripe.position.set(-0.40, cargo.position.y + 0.10, 0);
+    g.add(stripe);
 
     return g;
-  }
-
-  function addWheels(group, len, yPos) {
-    const wheelGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.12, 8);
-    const wheelMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
-    const positions = [
-      [ len * 0.32,  yPos,  0.4],
-      [ len * 0.32,  yPos, -0.4],
-      [-len * 0.32,  yPos,  0.4],
-      [-len * 0.32,  yPos, -0.4],
-    ];
-    positions.forEach(([x, y, z]) => {
-      const w = new THREE.Mesh(wheelGeo, wheelMat);
-      w.rotation.z = Math.PI / 2;
-      w.position.set(x, y, z);
-      w.castShadow = true;
-      group.add(w);
-    });
-  }
-
-  function addLights(group, frontX, y, bodyColor) {
-    const litMat = new THREE.MeshBasicMaterial({ color: 0xffffaa });
-    const litGeo = new THREE.BoxGeometry(0.06, 0.08, 0.12);
-    [-0.22, 0.22].forEach(z => {
-      const l = new THREE.Mesh(litGeo, litMat);
-      l.position.set(frontX * 0.5, y, z);
-      group.add(l);
-    });
   }
 
   function makeLog(length) {
@@ -520,74 +560,75 @@
   }
 
   // ─── Chicken (Player) ────────────────────────────────────
+  // The chicken's default facing is +Z (toward camera = "up" on screen).
+  // All parts are built relative to that facing so rotations in tryHop are correct.
   function buildPlayer() {
     player = new THREE.Group();
     player.name = 'player';
 
-    // Body
-    const bodyGeo = new THREE.BoxGeometry(0.42, 0.44, 0.38);
+    // Body — centred, sits above ground
+    const bodyGeo = new THREE.BoxGeometry(0.38, 0.40, 0.42);
     const bodyMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenBody });
     const body    = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.42;
+    body.position.y = 0.40;
     body.castShadow = true;
     player.add(body);
 
-    // Head
-    const headGeo = new THREE.BoxGeometry(0.32, 0.30, 0.30);
+    // Head — offset forward (+Z) from body centre
+    const headGeo = new THREE.BoxGeometry(0.30, 0.28, 0.30);
     const headMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenBody });
     const head    = new THREE.Mesh(headGeo, headMat);
-    head.position.set(0.08, 0.78, 0);
+    head.position.set(0, 0.76, 0.10);
     head.castShadow = true;
     player.add(head);
     player.userData.head = head;
+    player.userData.headBaseY = 0.76;
 
-    // Comb
-    const combGeo = new THREE.BoxGeometry(0.08, 0.14, 0.12);
+    // Comb — on top of head
+    const combGeo = new THREE.BoxGeometry(0.08, 0.13, 0.10);
     const combMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenComb });
     const comb    = new THREE.Mesh(combGeo, combMat);
-    comb.position.set(0.04, 0.97, 0);
+    comb.position.set(0, 0.96, 0.08);
     player.add(comb);
 
-    // Beak
-    const beakGeo = new THREE.BoxGeometry(0.12, 0.07, 0.08);
+    // Beak — protruding forward (+Z)
+    const beakGeo = new THREE.BoxGeometry(0.10, 0.07, 0.14);
     const beakMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenBeak });
     const beak    = new THREE.Mesh(beakGeo, beakMat);
-    beak.position.set(0.22, 0.75, 0);
+    beak.position.set(0, 0.73, 0.26);
     player.add(beak);
-    player.userData.beak = beak;
 
-    // Eyes
-    const eyeGeo = new THREE.SphereGeometry(0.045, 6, 6);
+    // Eyes — on the forward face of head, spread left/right
+    const eyeGeo = new THREE.SphereGeometry(0.043, 6, 6);
     const eyeMat = new THREE.MeshBasicMaterial({ color: COLORS.chickenEye });
-    [-0.1, 0.1].forEach(z => {
+    [-0.10, 0.10].forEach(x => {
       const eye = new THREE.Mesh(eyeGeo, eyeMat);
-      eye.position.set(0.225, 0.80, z);
+      eye.position.set(x, 0.78, 0.26);
       player.add(eye);
     });
 
-    // Wings
-    const wingGeo = new THREE.BoxGeometry(0.10, 0.26, 0.08);
+    // Wings — on the sides (±X)
+    const wingGeo = new THREE.BoxGeometry(0.08, 0.24, 0.30);
     const wingMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenWing });
     [-1, 1].forEach(side => {
       const wing = new THREE.Mesh(wingGeo, wingMat);
-      wing.position.set(-0.02, 0.42, side * 0.25);
-      wing.rotation.x = side * 0.2;
+      wing.position.set(side * 0.25, 0.40, 0);
       wing.castShadow = true;
       player.add(wing);
     });
 
-    // Feet
-    const feetGeo = new THREE.BoxGeometry(0.12, 0.06, 0.18);
+    // Feet — left and right
+    const feetGeo = new THREE.BoxGeometry(0.10, 0.06, 0.18);
     const feetMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenFeet });
     [-1, 1].forEach((side, i) => {
       const foot = new THREE.Mesh(feetGeo, feetMat);
-      foot.position.set(0, 0.04, side * 0.1);
+      foot.position.set(side * 0.10, 0.04, 0);
       foot.castShadow = true;
       player.add(foot);
       player.userData['foot' + i] = foot;
     });
 
-    // Drop shadow (flat circle under player)
+    // Drop shadow
     const shadowGeo = new THREE.CircleGeometry(0.28, 12);
     const shadowMat = new THREE.MeshBasicMaterial({
       color: COLORS.shadow,
@@ -617,6 +658,20 @@
   function onKeyDown(e) {
     if (keysDown[e.code]) return; // already held
     keysDown[e.code] = true;
+
+    // Pause toggle — works during playing or paused
+    if (e.code === 'KeyP') {
+      if (gameState === 'playing') {
+        gameState = 'paused';
+        document.getElementById('pause-screen').style.display = 'flex';
+        return;
+      } else if (gameState === 'paused') {
+        gameState = 'playing';
+        document.getElementById('pause-screen').style.display = 'none';
+        clock.getDelta(); // flush accumulated dt
+        return;
+      }
+    }
 
     if (gameState !== 'playing') return;
 
@@ -740,7 +795,7 @@
 
       // Body bob
       if (player.userData.head) {
-        player.userData.head.position.y = 0.78 + arc * 0.15;
+        player.userData.head.position.y = player.userData.headBaseY + arc * 0.15;
       }
     } else {
       // Riding a log — track player with the log's world X position
@@ -788,10 +843,11 @@
     if (newRow < -4) return;
 
     // Face direction of travel
-    if (dr === 1)       player.rotation.y = 0;
-    else if (dr === -1) player.rotation.y = Math.PI;
-    else if (dc === -1) player.rotation.y = Math.PI * 0.5;
-    else if (dc === 1)  player.rotation.y = -Math.PI * 0.5;
+    // Chicken default facing is +Z (toward camera). Row increases go away (-Z), so:
+    if (dr === 1)       player.rotation.y = Math.PI;        // forward = away from camera (-Z)
+    else if (dr === -1) player.rotation.y = 0;              // backward = toward camera (+Z)
+    else if (dc === -1) player.rotation.y = Math.PI / 2;   // left = -X
+    else if (dc === 1)  player.rotation.y = -Math.PI / 2;  // right = +X
 
     playerState.hopFrom = {
       x: playerState.worldX,
@@ -978,6 +1034,7 @@
       updateObstacles(dt);
       updateCamera(dt);
     }
+    // When paused, still render but don't update game logic
 
     renderer.render(scene, camera);
   }
