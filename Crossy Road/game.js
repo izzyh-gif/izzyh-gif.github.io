@@ -380,13 +380,15 @@
     road.receiveShadow = true;
     group.add(road);
 
-    // Dashed white centre line
-    const dashCount = Math.ceil(GRID_COLS / 2.2);
-    const dashW = 0.08, dashH = 0.005, dashD = 0.38;
-    const dashMat = new THREE.MeshBasicMaterial({ color: COLORS.roadLine });
+    // Dashed white centre line — dashes run along X (parallel to road edges / horizontal on screen)
+    const dashCount   = Math.ceil(GRID_COLS / 2.2);
+    const dashL = 0.55;  // length along X (the road direction)
+    const dashH = 0.005;
+    const dashW = 0.06;  // width along Z (thin stripe across the lane)
+    const dashMat     = new THREE.MeshBasicMaterial({ color: COLORS.roadLine });
     const dashSpacing = GRID_COLS / dashCount;
     for (let i = 0; i < dashCount; i++) {
-      const dashGeo  = new THREE.BoxGeometry(dashW, dashH, dashD);
+      const dashGeo  = new THREE.BoxGeometry(dashL, dashH, dashW);
       const dashMesh = new THREE.Mesh(dashGeo, dashMat);
       const xPos = -GRID_COLS / 2 + (i + 0.5) * dashSpacing;
       dashMesh.position.set(xPos, 0.001, z);
