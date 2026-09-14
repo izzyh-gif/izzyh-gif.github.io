@@ -304,10 +304,21 @@
       if (row === 2) {
         data.jetpack = 0; // centre column
       } else if (row > 3 && Math.random() < JETPACK_SPAWN_CHANCE) {
-        // Pick a column that won't be blocked by a tree
+        // Compute the visible column range from the live camera so we can
+        // exclude the 2 outermost columns on each side — the jetpack should
+        // never appear near the screen edge where the player could stumble
+        // into it while crossing.
+        const fovRad  = THREE.MathUtils.degToRad(camera.fov);
+        const halfH   = camera.position.y * Math.tan(fovRad / 2);
+        const halfW   = Math.floor(halfH * camera.aspect); // visible half-width in cols
+        const safeMin = -halfW + 2;  // exclude 2 cols from left edge
+        const safeMax =  halfW - 2;  // exclude 2 cols from right edge
+
         const freeCols = [];
-        for (let c = -HALF_COLS + 2; c <= HALF_COLS - 2; c++) {
-          if (!data.trees.includes(c)) freeCols.push(c);
+        for (let c = safeMin; c <= safeMax; c++) {
+          if (!data.trees.includes(c) && c >= -HALF_COLS && c <= HALF_COLS) {
+            freeCols.push(c);
+          }
         }
         if (freeCols.length > 0) {
           data.jetpack = freeCols[Math.floor(Math.random() * freeCols.length)];
@@ -895,6 +906,13 @@
 
     if (gameState !== 'playing') return;
 
+    // Down arrow during jetpack flight = drop onto current lane immediately
+    if (e.code === 'ArrowDown' && playerState.jetpackActive) {
+      e.preventDefault();
+      jetpackDrop();
+      return;
+    }
+
     const dirMap = {
       ArrowUp:    { dr: 1,  dc: 0 },
       ArrowDown:  { dr: -1, dc: 0 },
@@ -924,9 +942,10 @@
 
   function restartGame() {
     // Clear obstacles list
-    obstacles = [];
-    inputQueue = [];
-    keysDown   = {};
+    obstacles      = [];
+    inputQueue     = [];
+    keysDown       = {};
+    jetpackPickups = []; // must be cleared BEFORE buildInitialWorld so row-2 pickup registers fresh
 
     // Remove all lane objects from scene
     laneObjects.forEach(g => { if (g) scene.remove(g); });
@@ -946,7 +965,7 @@
     if (wastedEl) wastedEl.style.display = 'none';
     controlsHint.style.display   = 'block';
 
-    buildInitialWorld();
+    buildInitialWorld(); // registers row-2 tutorial jetpack into jetpackPickups
 
     playerState.dead          = false;
     playerState.hopping       = false;
@@ -956,7 +975,6 @@
     playerState.invincible    = 1.0;
     playerState.jetpackActive = false;
     playerState.jetpackFlyT   = 0;
-    jetpackPickups            = [];
     // Hide jetpack HUD if lingering
     const hud = document.getElementById('jetpack-hud');
     if (hud) hud.style.display = 'none';
@@ -1036,21 +1054,14 @@
         const hud = document.getElementById('jetpack-hud');
         if (hud) hud.style.display = 'none';
 
-        // Land on river? Check for log; otherwise safe (lands on solid ground guaranteed
-        // because we aim for the player's current X which could be river — treat as ground)
-        const lane = lanes[playerState.row + 1000];
-        if (lane && lane.type === LANE_TYPES.RIVER) {
-          const log = getLogUnderPlayer();
-          if (log) {
-            playerState.onLog      = log;
-            playerState.logOffsetX = playerState.worldX - log.mesh.position.x;
-          } else {
-            triggerDeath('water');
-          }
-        } else {
-          playerState.onLog      = null;
-          playerState.logOffsetX = 0;
-        }
+        // Landing is always on a grass lane (activateJetpack guarantees this),
+        // so just clear log state and reset — no river check needed.
+        playerState.onLog      = null;
+        playerState.logOffsetX = 0;
+
+        // Grant brief invincibility on landing so any stray collision checks
+        // on the new row don't immediately kill the player.
+        playerState.invincible = 0.4;
 
         cullOldLanes();
         return;
@@ -1229,16 +1240,12 @@
       scoreDisplay.textContent = score;
     }
 
-    // Jetpack collection check on landing — catches cases where the player hops
-    // directly onto the pickup tile (the per-frame check in updateJetpackPickups
-    // can miss it when the hop completes in a single frame or the player was
-    // hopping and collection was skipped).
+    // Jetpack collection check on landing — grid-coordinate match is reliable
+    // regardless of floating-point position drift.
     if (!playerState.dead && !playerState.jetpackActive) {
       for (const p of jetpackPickups) {
         if (p.collected || !p.mesh) continue;
-        const dx = Math.abs(playerState.worldX - p.worldX);
-        const dz = Math.abs(playerState.worldZ - p.worldZ);
-        if (dx < 0.65 && dz < 0.65) {
+        if (playerState.row === p.row && playerState.col === p.col) {
           collectJetpack(p);
           break;
         }
@@ -1333,12 +1340,11 @@
         p.mesh.userData.ring.material.transparent = true;
       }
 
-      // Collection check — triggers when player centre is within 0.65 units on both axes.
-      // Runs every frame including during hops so the player can collect mid-jump.
+      // Collection check — match by grid row + column so floating-point
+      // drift from log-riding or interpolation can never cause a miss.
       if (!playerState.dead && !playerState.jetpackActive && gameState === 'playing') {
-        const dx = Math.abs(playerState.worldX - p.worldX);
-        const dz = Math.abs(playerState.worldZ - p.worldZ);
-        if (dx < 0.65 && dz < 0.65) {
+        const playerCol = Math.round(playerState.worldX / TILE_SIZE);
+        if (playerState.row === p.row && playerCol === p.col) {
           collectJetpack(p);
         }
       }
@@ -1355,26 +1361,35 @@
   }
 
   function activateJetpack(lanesToSkip) {
-    const targetRow = playerState.row + lanesToSkip;
-    const fromZ     = playerState.worldZ;
-    const toZ       = -targetRow * LANE_WIDTH;
+    // Find a grass landing lane at or beyond targetRow so the cow always
+    // lands safely — never on a road or river.
+    const minTarget = playerState.row + lanesToSkip;
 
-    playerState.jetpackActive  = true;
-    playerState.jetpackFlyT    = 0;
-    playerState.jetpackLanes   = lanesToSkip;
-    playerState.jetpackFlyFrom = { x: playerState.worldX, z: fromZ, row: playerState.row };
-    playerState.jetpackFlyTo   = { x: playerState.worldX, z: toZ,   row: targetRow };
-
-    // Ensure world is generated far enough ahead
-    const needed = targetRow + GENERATE_AHEAD;
+    // Generate enough lanes to search through
+    const needed = minTarget + 8 + GENERATE_AHEAD;
     for (let r = getMaxGeneratedRow() + 1; r <= needed; r++) {
       generateLane(r);
     }
 
+    // Walk forward from minTarget until we hit a grass lane (max 8 extra rows)
+    let targetRow = minTarget;
+    for (let r = minTarget; r <= minTarget + 8; r++) {
+      const ld = lanes[r + 1000];
+      if (ld && ld.type === LANE_TYPES.GRASS) { targetRow = r; break; }
+    }
+
+    const fromZ = playerState.worldZ;
+    const toZ   = -targetRow * LANE_WIDTH;
+
+    playerState.jetpackActive  = true;
+    playerState.jetpackFlyT    = 0;
+    playerState.jetpackLanes   = targetRow - playerState.row;
+    playerState.jetpackFlyFrom = { x: playerState.worldX, z: fromZ, row: playerState.row };
+    playerState.jetpackFlyTo   = { x: playerState.worldX, z: toZ,   row: targetRow };
+
     // Attach jetpack prop to player
     if (!player.userData.jetpackProp) {
       const prop = makeJetpackProp();
-      // Position on the cow's back (slightly behind centre, mid-height)
       prop.position.set(0, 0.46, -0.30);
       player.add(prop);
       player.userData.jetpackProp = prop;
@@ -1384,6 +1399,40 @@
     // Show HUD indicator
     const hud = document.getElementById('jetpack-hud');
     if (hud) hud.style.display = 'block';
+  }
+
+  // Drop from jetpack mid-flight onto the nearest grass lane below current position.
+  function jetpackDrop() {
+    if (!playerState.jetpackActive) return;
+
+    const t    = playerState.jetpackFlyT;
+    const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+    // Current mid-flight world position
+    const currentX = lerp(playerState.jetpackFlyFrom.x, playerState.jetpackFlyTo.x, ease);
+    const currentZ = lerp(playerState.jetpackFlyFrom.z, playerState.jetpackFlyTo.z, ease);
+
+    // Row we're currently above
+    const aboveRow = Math.round(-currentZ / LANE_WIDTH);
+
+    // Find nearest grass lane at or ahead of current position
+    let dropRow = aboveRow;
+    for (let r = aboveRow; r <= aboveRow + 6; r++) {
+      if (lanes[r + 1000] === undefined) generateLane(r);
+      if (lanes[r + 1000] && lanes[r + 1000].type === LANE_TYPES.GRASS) {
+        dropRow = r;
+        break;
+      }
+    }
+
+    const dropZ = -dropRow * LANE_WIDTH;
+
+    // Redirect the flight to land at this position
+    playerState.jetpackFlyFrom = { x: currentX, z: currentZ, row: aboveRow };
+    playerState.jetpackFlyTo   = { x: currentX, z: dropZ,    row: dropRow };
+
+    // Reset to top of arc so there's a visible descent
+    playerState.jetpackFlyT = 0.5;
   }
 
   // ─── Obstacles Update ────────────────────────────────────
