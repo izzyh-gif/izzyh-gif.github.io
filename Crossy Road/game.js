@@ -47,14 +47,16 @@
     // Truck colors — cab is a bright color, cargo is always white
     truckCabColors: [0xe05252, 0x4a9de8, 0x5bc95b, 0xe87722],
     truckCargo:   0xeeeeff,
-    // Chicken
-    chickenBody:  0xffffff,
-    chickenBeak:  0xf39c12,
-    chickenComb:  0xe74c3c,
-    chickenEye:   0x111111,
-    chickenFeet:  0xf39c12,
-    chickenWing:  0xeeeeee,
-    shadow:       0x000000,
+    // Cow player
+    cowBody:    0xffffff,
+    cowSpot:    0x222222,
+    cowNose:    0xffbbaa,
+    cowNostril: 0xcc7766,
+    cowEye:     0x111111,
+    cowHorn:    0xddcc88,
+    cowUdder:   0xffcccc,
+    cowHoof:    0x333333,
+    shadow:     0x000000,
     // Sky / fog — match road blue-grey tone
     sky:          0x99aabb,
     fogColor:     0x99aabb,
@@ -311,6 +313,12 @@
           data.jetpack = freeCols[Math.floor(Math.random() * freeCols.length)];
         }
       }
+      // Guarantee the jetpack column is never in the tree list so the player
+      // can always walk onto it. Remove it if it slipped through.
+      if (data.jetpack !== null) {
+        const jpIdx = data.trees.indexOf(data.jetpack);
+        if (jpIdx !== -1) data.trees.splice(jpIdx, 1);
+      }
     }
 
     return data;
@@ -343,9 +351,10 @@
     mesh.receiveShadow = true;
     group.add(mesh);
 
-    // Trees / bushes
+    // Trees / bushes — never block the jetpack column
     if (data.trees) {
       data.trees.forEach(col => {
+        if (data.jetpack !== null && data.jetpack !== undefined && col === data.jetpack) return;
         const bush = Math.random() < 0.25;
         const obj  = bush ? makeBush() : makeTree();
         obj.position.set(col * TILE_SIZE, 0, z);
@@ -723,81 +732,128 @@
     return g;
   }
 
-  // ─── Chicken (Player) ────────────────────────────────────
-  // The chicken's default facing is +Z (toward camera = "up" on screen).
-  // All parts are built relative to that facing so rotations in tryHop are correct.
+  // ─── Cow (Player) ────────────────────────────────────────
+  // Default facing = +Z (toward camera). Beak/snout protrudes in +Z.
+  // Rotations in tryHop are set relative to this default.
   function buildPlayer() {
     player = new THREE.Group();
     player.name = 'player';
 
-    // Body — centred, sits above ground
-    const bodyGeo = new THREE.BoxGeometry(0.38, 0.40, 0.42);
-    const bodyMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenBody });
+    const bodyMat  = new THREE.MeshLambertMaterial({ color: COLORS.cowBody });
+    const spotMat  = new THREE.MeshLambertMaterial({ color: COLORS.cowSpot });
+    const noseMat  = new THREE.MeshLambertMaterial({ color: COLORS.cowNose });
+    const eyeMat   = new THREE.MeshBasicMaterial({ color: COLORS.cowEye });
+    const hornMat  = new THREE.MeshLambertMaterial({ color: COLORS.cowHorn });
+    const udderMat = new THREE.MeshLambertMaterial({ color: COLORS.cowUdder });
+    const hoofMat  = new THREE.MeshLambertMaterial({ color: COLORS.cowHoof });
+
+    // ── Body ──
+    const bodyGeo = new THREE.BoxGeometry(0.44, 0.38, 0.54);
     const body    = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.40;
+    body.position.y = 0.46;
     body.castShadow = true;
     player.add(body);
 
-    // Head — offset forward (+Z) from body centre
-    const headGeo = new THREE.BoxGeometry(0.30, 0.28, 0.30);
-    const headMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenBody });
-    const head    = new THREE.Mesh(headGeo, headMat);
-    head.position.set(0, 0.76, 0.10);
+    // Black spots on body (two flat dark patches, one side)
+    const spot1 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.04), spotMat);
+    spot1.position.set(0.08, 0.54, 0.28);
+    player.add(spot1);
+    const spot2 = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.13, 0.04), spotMat);
+    spot2.position.set(-0.12, 0.42, 0.28);
+    player.add(spot2);
+    // Spot on top
+    const spot3 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.14), spotMat);
+    spot3.position.set(0.06, 0.66, 0.04);
+    player.add(spot3);
+
+    // ── Head ── (offset forward +Z)
+    const headGeo = new THREE.BoxGeometry(0.34, 0.32, 0.30);
+    const head    = new THREE.Mesh(headGeo, bodyMat);
+    head.position.set(0, 0.76, 0.28);
     head.castShadow = true;
     player.add(head);
-    player.userData.head = head;
+    player.userData.head     = head;
     player.userData.headBaseY = 0.76;
 
-    // Comb — on top of head
-    const combGeo = new THREE.BoxGeometry(0.08, 0.13, 0.10);
-    const combMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenComb });
-    const comb    = new THREE.Mesh(combGeo, combMat);
-    comb.position.set(0, 0.96, 0.08);
-    player.add(comb);
+    // Black patch around one eye area
+    const eyePatch = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.04), spotMat);
+    eyePatch.position.set(0.10, 0.80, 0.44);
+    player.add(eyePatch);
 
-    // Beak — protruding forward (+Z)
-    const beakGeo = new THREE.BoxGeometry(0.10, 0.07, 0.14);
-    const beakMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenBeak });
-    const beak    = new THREE.Mesh(beakGeo, beakMat);
-    beak.position.set(0, 0.73, 0.26);
-    player.add(beak);
+    // ── Snout / muzzle — box protruding further +Z ──
+    const snoutGeo = new THREE.BoxGeometry(0.24, 0.16, 0.12);
+    const snout    = new THREE.Mesh(snoutGeo, noseMat);
+    snout.position.set(0, 0.70, 0.45);
+    player.add(snout);
 
-    // Eyes — on the forward face of head, spread left/right
-    const eyeGeo = new THREE.SphereGeometry(0.043, 6, 6);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: COLORS.chickenEye });
-    [-0.10, 0.10].forEach(x => {
+    // Nostrils — two tiny dark squares on snout face
+    const nostrilMat = new THREE.MeshBasicMaterial({ color: COLORS.cowNostril });
+    const nostrilGeo = new THREE.BoxGeometry(0.05, 0.04, 0.02);
+    [-0.07, 0.07].forEach(x => {
+      const n = new THREE.Mesh(nostrilGeo, nostrilMat);
+      n.position.set(x, 0.70, 0.52);
+      player.add(n);
+    });
+
+    // ── Eyes — small dark spheres on the forward face of head ──
+    const eyeGeo = new THREE.SphereGeometry(0.038, 6, 6);
+    [-0.12, 0.12].forEach(x => {
       const eye = new THREE.Mesh(eyeGeo, eyeMat);
-      eye.position.set(x, 0.78, 0.26);
+      eye.position.set(x, 0.82, 0.44);
       player.add(eye);
     });
 
-    // Wings — on the sides (±X)
-    const wingGeo = new THREE.BoxGeometry(0.08, 0.24, 0.30);
-    const wingMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenWing });
+    // ── Horns — two small tapered boxes on top of head ──
+    const hornGeo = new THREE.BoxGeometry(0.06, 0.16, 0.06);
+    [-0.12, 0.12].forEach(x => {
+      const horn = new THREE.Mesh(hornGeo, hornMat);
+      horn.position.set(x, 0.98, 0.22);
+      horn.rotation.z = x > 0 ? 0.18 : -0.18;
+      player.add(horn);
+    });
+
+    // ── Ears — flat boxes on the sides of the head ──
+    const earGeo = new THREE.BoxGeometry(0.06, 0.12, 0.10);
     [-1, 1].forEach(side => {
-      const wing = new THREE.Mesh(wingGeo, wingMat);
-      wing.position.set(side * 0.25, 0.40, 0);
-      wing.castShadow = true;
-      player.add(wing);
+      const ear = new THREE.Mesh(earGeo, bodyMat);
+      ear.position.set(side * 0.21, 0.82, 0.24);
+      ear.rotation.z = side * 0.3;
+      player.add(ear);
     });
 
-    // Feet — left and right
-    const feetGeo = new THREE.BoxGeometry(0.10, 0.06, 0.18);
-    const feetMat = new THREE.MeshLambertMaterial({ color: COLORS.chickenFeet });
-    [-1, 1].forEach((side, i) => {
-      const foot = new THREE.Mesh(feetGeo, feetMat);
-      foot.position.set(side * 0.10, 0.04, 0);
-      foot.castShadow = true;
-      player.add(foot);
-      player.userData['foot' + i] = foot;
+    // ── Udder — small pink box on underside of body ──
+    const udder = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.10, 0.16), udderMat);
+    udder.position.set(0, 0.24, 0.06);
+    player.add(udder);
+
+    // ── Legs / hooves — 4 dark stubby boxes ──
+    const legGeo  = new THREE.BoxGeometry(0.10, 0.22, 0.10);
+    const hoofGeo = new THREE.BoxGeometry(0.11, 0.07, 0.12);
+    [
+      [ 0.15, 0,  0.18],
+      [-0.15, 0,  0.18],
+      [ 0.15, 0, -0.18],
+      [-0.15, 0, -0.18],
+    ].forEach(([x, , z], i) => {
+      const leg  = new THREE.Mesh(legGeo, bodyMat);
+      leg.position.set(x, 0.22, z);
+      leg.castShadow = true;
+      player.add(leg);
+
+      const hoof = new THREE.Mesh(hoofGeo, hoofMat);
+      hoof.position.set(x, 0.07, z);
+      player.add(hoof);
+
+      // Store front legs for foot animation
+      if (i < 2) player.userData['foot' + i] = hoof;
     });
 
-    // Drop shadow
-    const shadowGeo = new THREE.CircleGeometry(0.28, 12);
+    // ── Drop shadow ──
+    const shadowGeo = new THREE.CircleGeometry(0.30, 12);
     const shadowMat = new THREE.MeshBasicMaterial({
       color: COLORS.shadow,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.25,
     });
     const shadow = new THREE.Mesh(shadowGeo, shadowMat);
     shadow.rotation.x = -Math.PI / 2;
@@ -1173,6 +1229,22 @@
       scoreDisplay.textContent = score;
     }
 
+    // Jetpack collection check on landing — catches cases where the player hops
+    // directly onto the pickup tile (the per-frame check in updateJetpackPickups
+    // can miss it when the hop completes in a single frame or the player was
+    // hopping and collection was skipped).
+    if (!playerState.dead && !playerState.jetpackActive) {
+      for (const p of jetpackPickups) {
+        if (p.collected || !p.mesh) continue;
+        const dx = Math.abs(playerState.worldX - p.worldX);
+        const dz = Math.abs(playerState.worldZ - p.worldZ);
+        if (dx < 0.65 && dz < 0.65) {
+          collectJetpack(p);
+          break;
+        }
+      }
+    }
+
     // Land on river? Check for log
     const lane = lanes[playerState.row + 1000];
     if (lane && lane.type === LANE_TYPES.RIVER) {
@@ -1261,11 +1333,12 @@
         p.mesh.userData.ring.material.transparent = true;
       }
 
-      // Collection check — player walks onto same tile
+      // Collection check — triggers when player centre is within 0.65 units on both axes.
+      // Runs every frame including during hops so the player can collect mid-jump.
       if (!playerState.dead && !playerState.jetpackActive && gameState === 'playing') {
         const dx = Math.abs(playerState.worldX - p.worldX);
         const dz = Math.abs(playerState.worldZ - p.worldZ);
-        if (dx < 0.6 && dz < 0.6) {
+        if (dx < 0.65 && dz < 0.65) {
           collectJetpack(p);
         }
       }
@@ -1274,12 +1347,11 @@
 
   function collectJetpack(pickup) {
     pickup.collected = true;
-    // Hide the pickup mesh
     pickup.mesh.visible = false;
 
-    // Lanes to skip: 5–7
-    const lanes = 5 + Math.floor(Math.random() * 3);
-    activateJetpack(lanes);
+    // Lanes to skip: 5–7 (use different name to avoid shadowing global `lanes` array)
+    const lanesToSkip = 5 + Math.floor(Math.random() * 3);
+    activateJetpack(lanesToSkip);
   }
 
   function activateJetpack(lanesToSkip) {
@@ -1302,8 +1374,8 @@
     // Attach jetpack prop to player
     if (!player.userData.jetpackProp) {
       const prop = makeJetpackProp();
-      // Position behind and on the back of the chicken body
-      prop.position.set(0, 0.40, -0.25);
+      // Position on the cow's back (slightly behind centre, mid-height)
+      prop.position.set(0, 0.46, -0.30);
       player.add(prop);
       player.userData.jetpackProp = prop;
     }
