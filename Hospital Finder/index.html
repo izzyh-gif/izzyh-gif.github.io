@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hospital Finder</title>
+
+  <!-- ============================================================
+    OVERARCHING PROMPT / APP CONFIGURATION
+    ============================================================
+    Customize this section to change the behavior and focus of
+    the Hospital Finder. Examples:
+      - Change SEARCH_PLACEHOLDER to guide users
+      - Change PAGE_TITLE / SUBTITLE to rebrand
+      - Set DEFAULT_STATE to pre-filter results (e.g. "CA")
+      - Adjust RESULTS_LIMIT to show more/fewer results per search
+      - Set REQUIRED_HOSPITAL_TYPE to restrict results to a type
+        e.g. "Acute Care Hospitals", "Critical Access Hospitals"
+        Leave as "" to allow all types.
+  ============================================================ -->
+  <script>
+    const APP_CONFIG = {
+      PAGE_TITLE:             "Hospital Finder",
+      SUBTITLE:               "Search Medicare-certified hospitals across the United States",
+      SEARCH_PLACEHOLDER_CITY:  "e.g. Boston, MA",
+      SEARCH_PLACEHOLDER_ZIP:   "e.g. 02115",
+      SEARCH_PLACEHOLDER_NAME:  "e.g. General Hospital",
+      RESULTS_LIMIT:          20,         // max results returned per search (max 500)
+      DEFAULT_STATE:          "",         // pre-filter by state code, e.g. "CA". Leave "" for all states.
+      REQUIRED_HOSPITAL_TYPE: "",         // restrict to a hospital type, or "" for all
+      SHOW_QUALITY_SCORES:    true,       // show/hide the quality measure summary cards
+    };
+  </script>
+  <!-- ============================================================
+    END OVERARCHING PROMPT
+  ============================================================ -->
+
+  <style>
+    /* ---- Design tokens: blue/white healthcare palette ---- */
+    :root {
+      --blue-dark:    #003087;   /* deep navy — headers, primary actions */
+      --blue-mid:     #0057b8;   /* standard CMS blue */
+      --blue-light:   #d6e8ff;   /* light tint for backgrounds */
+      --blue-accent:  #00a0d2;   /* teal-blue accent */
+      --white:        #ffffff;
+      --gray-50:      #f4f7fb;
+      --gray-100:     #e8edf5;
+      --gray-400:     #8899aa;
+      --gray-700:     #334155;
+      --red:          #c0392b;   /* emergency badge */
+      --green:        #1a7a4a;
+      --font:         'Segoe UI', Arial, sans-serif;
+      --shadow-sm:    0 1px 3px rgba(0,0,0,.12);
+      --shadow-md:    0 4px 12px rgba(0,0,0,.15);
+      --radius:       8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--gray-50);
+      color: var(--gray-700);
+      min-height: 100vh;
+    }
+
+    /* ---- Header ---- */
+    header {
+      background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue-mid) 100%);
+      color: var(--white);
+      padding: 2rem 1.5rem 2.5rem;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -.5px;
+    }
+    header p {
+      margin-top: .5rem;
+      font-size: 1rem;
+      opacity: .85;
+    }
+    .cms-badge {
+      display: inline-block;
+      margin-top: .75rem;
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 20px;
+      padding: .25rem .75rem;
+      font-size: .75rem;
+      letter-spacing: .5px;
+    }
+
+    /* ---- Search panel ---- */
+    .search-panel {
+      max-width: 820px;
+      margin: -1.5rem auto 0;
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      padding: 1.5rem;
+    }
+
+    .search-tabs {
+      display: flex;
+      gap: .5rem;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid var(--gray-100);
+      padding-bottom: .75rem;
+    }
+    .tab-btn {
+      background: none;
+      border: 1.5px solid var(--gray-100);
+      border-radius: 20px;
+      padding: .35rem .9rem;
+      font-size: .875rem;
+      cursor: pointer;
+      color: var(--gray-700);
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .tab-btn.active {
+      background: var(--blue-mid);
+      color: var(--white);
+      border-color: var(--blue-mid);
+    }
+    .tab-btn:hover:not(.active) {
+      background: var(--blue-light);
+      border-color: var(--blue-mid);
+    }
+
+    .search-form {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: .3rem;
+      flex: 1;
+      min-width: 180px;
+    }
+    .input-group label {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--blue-dark);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .input-group input, .input-group select {
+      border: 1.5px solid var(--gray-100);
+      border-radius: var(--radius);
+      padding: .6rem .85rem;
+      font-size: .95rem;
+      outline: none;
+      transition: border-color .15s;
+      background: var(--white);
+      color: var(--gray-700);
+    }
+    .input-group input:focus, .input-group select:focus {
+      border-color: var(--blue-mid);
+      box-shadow: 0 0 0 3px rgba(0,87,184,.1);
+    }
+
+    .search-btn {
+      background: var(--blue-mid);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius);
+      padding: .65rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+      white-space: nowrap;
+      align-self: flex-end;
+    }
+    .search-btn:hover  { background: var(--blue-dark); }
+    .search-btn:active { transform: scale(.97); }
+
+    .clear-btn {
+      background: none;
+      border: 1.5px solid var(--gray-400);
+      color: var(--gray-400);
+      border-radius: var(--radius);
+      padding: .65rem 1rem;
+      font-size: .9rem;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+      align-self: flex-end;
+    }
+    .clear-btn:hover {
+      border-color: var(--blue-mid);
+      color: var(--blue-mid);
+    }
+
+    /* ---- Main content ---- */
+    main {
+      max-width: 820px;
+      margin: 1.5rem auto 3rem;
+      padding: 0 1rem;
+    }
+
+    .status-bar {
+      font-size: .85rem;
+      color: var(--gray-400);
+      margin-bottom: 1rem;
+      min-height: 1.2rem;
+    }
+
+    /* ---- Result cards ---- */
+    .results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .hospital-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--gray-100);
+      overflow: hidden;
+      transition: box-shadow .2s;
+    }
+    .hospital-card:hover { box-shadow: var(--shadow-md); }
+
+    .card-header {
+      background: var(--blue-light);
+      padding: .85rem 1.1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: .5rem;
+    }
+    .hospital-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--blue-dark);
+      line-height: 1.3;
+    }
+    .rating-badge {
+      flex-shrink: 0;
+      background: var(--blue-dark);
+      color: var(--white);
+      border-radius: 20px;
+      padding: .2rem .75rem;
+      font-size: .8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+    }
+    .rating-badge.no-rating {
+      background: var(--gray-400);
+      font-weight: 400;
+    }
+
+    .card-body {
+      padding: .85rem 1.1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: .6rem .75rem;
+    }
+
+    .info-row {
+      display: flex;
+      flex-direction: column;
+      gap: .1rem;
+    }
+    .info-label {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--gray-400);
+      font-weight: 600;
+    }
+    .info-value {
+      font-size: .9rem;
+      color: var(--gray-700);
+    }
+
+    /* emergency pill */
+    .em-yes {
+      display: inline-block;
+      background: #fde8e8;
+      color: var(--red);
+      border-radius: 4px;
+      padding: .1rem .45rem;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+    .em-no {
+      display: inline-block;
+      background: var(--gray-100);
+      color: var(--gray-400);
+      border-radius: 4px;
+      padding: .1rem .45rem;
+      font-size: .78rem;
+    }
+
+    /* quality scores */
+    .quality-grid {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+      padding: .6rem 1.1rem .85rem;
+      border-top: 1px solid var(--gray-100);
+    }
+    .q-chip {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-100);
+      border-radius: 6px;
+      padding: .3rem .65rem;
+      font-size: .78rem;
+      color: var(--gray-700);
+    }
+    .q-chip strong { color: var(--blue-dark); }
+
+    /* ---- States ---- */
+    .state-empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--gray-400);
+    }
+    .state-empty svg { margin-bottom: .75rem; opacity: .4; }
+    .state-empty p { font-size: .95rem; }
+
+    .error-msg {
+      background: #fde8e8;
+      color: var(--red);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      font-size: .9rem;
+    }
+
+    /* ---- Loading spinner ---- */
+    .spinner {
+      display: flex;
+      justify-content: center;
+      padding: 2.5rem;
+    }
+    .spinner::after {
+      content: '';
+      width: 36px; height: 36px;
+      border: 4px solid var(--blue-light);
+      border-top-color: var(--blue-mid);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Footer ---- */
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: .8rem;
+      color: var(--gray-400);
+      border-top: 1px solid var(--gray-100);
+    }
+    footer a { color: var(--blue-mid); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.4rem; }
+      .search-panel { margin: -1rem .75rem 0; padding: 1rem; }
+      .search-tabs { flex-wrap: wrap; }
+      main { padding: 0 .75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+  SECTION: PAGE HEADER
+  The title and subtitle are pulled from APP_CONFIG above.
+  Edit PAGE_TITLE and SUBTITLE in APP_CONFIG to change them.
+============================================================ -->
+<header>
+  <h1 id="page-title">Hospital Finder</h1>
+  <p id="page-subtitle">Search Medicare-certified hospitals across the United States</p>
+  <span class="cms-badge">Powered by CMS Provider Data Catalog</span>
+</header>
+
+<!-- ============================================================
+  SECTION: SEARCH PANEL
+  Three search modes: City/State, ZIP Code, Hospital Name.
+  Tabs switch the active input fields.
+============================================================ -->
+<div class="search-panel">
+  <div class="search-tabs" role="tablist" aria-label="Search method">
+    <button class="tab-btn active" role="tab" aria-selected="true"  data-tab="city"  onclick="switchTab('city')">🏙 City / State</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" data-tab="zip"   onclick="switchTab('zip')">📍 ZIP Code</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" data-tab="name"  onclick="switchTab('name')">🏥 Hospital Name</button>
+  </div>
+
+  <!-- City/State form -->
+  <form id="form-city" class="search-form" onsubmit="runSearch(event)">
+    <div class="input-group">
+      <label for="input-city">City</label>
+      <input id="input-city" type="text" autocomplete="address-level2" placeholder="e.g. Boston" />
+    </div>
+    <div class="input-group" style="max-width:140px">
+      <label for="input-state">State</label>
+      <select id="input-state">
+        <option value="">All states</option>
+        <!-- populated by JS -->
+      </select>
+    </div>
+    <button type="submit" class="search-btn">Search</button>
+    <button type="button" class="clear-btn" onclick="clearResults()">Clear</button>
+  </form>
+
+  <!-- ZIP Code form -->
+  <form id="form-zip" class="search-form" style="display:none" onsubmit="runSearch(event)">
+    <div class="input-group">
+      <label for="input-zip">ZIP Code</label>
+      <input id="input-zip" type="text" inputmode="numeric" maxlength="5" placeholder="e.g. 02115" />
+    </div>
+    <button type="submit" class="search-btn">Search</button>
+    <button type="button" class="clear-btn" onclick="clearResults()">Clear</button>
+  </form>
+
+  <!-- Hospital Name form -->
+  <form id="form-name" class="search-form" style="display:none" onsubmit="runSearch(event)">
+    <div class="input-group">
+      <label for="input-name">Hospital Name</label>
+      <input id="input-name" type="text" placeholder="e.g. Johns Hopkins" />
+    </div>
+    <button type="submit" class="search-btn">Search</button>
+    <button type="button" class="clear-btn" onclick="clearResults()">Clear</button>
+  </form>
+</div>
+
+<main>
+  <div id="status-bar" class="status-bar" aria-live="polite"></div>
+  <div id="results" role="list" aria-label="Hospital results"></div>
+</main>
+
+<footer>
+  Data sourced from the <a href="https://data.cms.gov/provider-data/dataset/xubh-q36u" target="_blank" rel="noopener">CMS Provider Data Catalog — Hospital General Information</a>.
+  Updated periodically by CMS. Not intended as medical advice.
+</footer>
+
+<script>
+  // ============================================================
+  // API CONFIGURATION
+  // ============================================================
+  // data.cms.gov is a public open-data platform — no API key is
+  // required for the hospital dataset used here. The API_KEY
+  // variable below is loaded from private.txt if present, but
+  // will simply be omitted from requests if the file is empty or
+  // not found (the API works either way).
+  //
+  // If your private.txt contains a key for a DIFFERENT CMS API
+  // (e.g. Blue Button, BCDA, Marketplace API), update the
+  // BASE_URL and query logic in buildQuery() below accordingly.
+  // ============================================================
+
+  const DATASET_DISTRIBUTION_ID = "90fa4cdf-f49d-556d-8790-d32fbbec40c6";
+  const API_BASE = "https://data.cms.gov/provider-data/api/1/datastore/sql";
+
+  // ============================================================
+  // PRIVATE KEY LOADING
+  // Reads private.txt from the same directory at page load.
+  // The key is appended as &api_key=... if present.
+  // To use: put your key as a single line in private.txt.
+  // ============================================================
+  let API_KEY = "";
+
+  async function loadApiKey() {
+    try {
+      const res = await fetch("private.txt");
+      if (res.ok) {
+        const text = await res.text();
+        API_KEY = text.trim();
+      }
+    } catch (_) {
+      // File not found or fetch blocked — that's fine, key is optional
+    }
+  }
+
+  // ============================================================
+  // US STATES — for the state dropdown
+  // ============================================================
+  const US_STATES = [
+    ["AL","Alabama"],["AK","Alaska"],["AZ","Arizona"],["AR","Arkansas"],
+    ["CA","California"],["CO","Colorado"],["CT","Connecticut"],["DE","Delaware"],
+    ["FL","Florida"],["GA","Georgia"],["HI","Hawaii"],["ID","Idaho"],
+    ["IL","Illinois"],["IN","Indiana"],["IA","Iowa"],["KS","Kansas"],
+    ["KY","Kentucky"],["LA","Louisiana"],["ME","Maine"],["MD","Maryland"],
+    ["MA","Massachusetts"],["MI","Michigan"],["MN","Minnesota"],["MS","Mississippi"],
+    ["MO","Missouri"],["MT","Montana"],["NE","Nebraska"],["NV","Nevada"],
+    ["NH","New Hampshire"],["NJ","New Jersey"],["NM","New Mexico"],["NY","New York"],
+    ["NC","North Carolina"],["ND","North Dakota"],["OH","Ohio"],["OK","Oklahoma"],
+    ["OR","Oregon"],["PA","Pennsylvania"],["RI","Rhode Island"],["SC","South Carolina"],
+    ["SD","South Dakota"],["TN","Tennessee"],["TX","Texas"],["UT","Utah"],
+    ["VT","Vermont"],["VA","Virginia"],["WA","Washington"],["WV","West Virginia"],
+    ["WI","Wisconsin"],["WY","Wyoming"],["DC","District of Columbia"],
+    ["PR","Puerto Rico"],["GU","Guam"],["VI","Virgin Islands"]
+  ];
+
+  function populateStateDropdown() {
+    const sel = document.getElementById("input-state");
+    US_STATES.forEach(([code, name]) => {
+      const opt = document.createElement("option");
+      opt.value = code;
+      opt.textContent = `${code} — ${name}`;
+      sel.appendChild(opt);
+    });
+    // Apply DEFAULT_STATE from APP_CONFIG if set
+    if (APP_CONFIG.DEFAULT_STATE) sel.value = APP_CONFIG.DEFAULT_STATE;
+  }
+
+  // ============================================================
+  // SEARCH TAB SWITCHING
+  // ============================================================
+  let activeTab = "city";
+
+  function switchTab(tab) {
+    activeTab = tab;
+    ["city","zip","name"].forEach(t => {
+      document.getElementById(`form-${t}`).style.display = t === tab ? "flex" : "none";
+      const btn = document.querySelector(`[data-tab="${t}"]`);
+      btn.classList.toggle("active", t === tab);
+      btn.setAttribute("aria-selected", t === tab);
+    });
+    clearResults();
+  }
+
+  // ============================================================
+  // QUERY BUILDER
+  // Constructs the CMS SQL query string from user input.
+  //
+  // OVERARCHING PROMPT NOTE:
+  // To add a global filter (e.g. only show hospitals with a
+  // rating of 4 or 5, or only Emergency Services = "Yes"),
+  // add extra WHERE conditions to the buildQuery() function
+  // below. Example:
+  //   baseConditions.push(`"Hospital overall rating" IN ('4','5')`);
+  // ============================================================
+  function buildQuery(tab) {
+    const limit  = APP_CONFIG.RESULTS_LIMIT;
+    const typeFilter = APP_CONFIG.REQUIRED_HOSPITAL_TYPE;
+
+    // Collect base WHERE conditions
+    const where = [];
+
+    if (tab === "city") {
+      const city  = document.getElementById("input-city").value.trim();
+      const state = document.getElementById("input-state").value.trim();
+      if (!city && !state) return null;
+      if (city)  where.push(`UPPER("City/Town") LIKE UPPER('%${escapeSql(city)}%')`);
+      if (state) where.push(`"State" = '${escapeSql(state)}'`);
+
+    } else if (tab === "zip") {
+      const zip = document.getElementById("input-zip").value.trim();
+      if (!zip) return null;
+      where.push(`"ZIP Code" = '${escapeSql(zip)}'`);
+
+    } else if (tab === "name") {
+      const name = document.getElementById("input-name").value.trim();
+      if (!name) return null;
+      where.push(`UPPER("Facility Name") LIKE UPPER('%${escapeSql(name)}%')`);
+    }
+
+    // Global type filter from APP_CONFIG
+    if (typeFilter) {
+      where.push(`"Hospital Type" = '${escapeSql(typeFilter)}'`);
+    }
+
+    // ============================================================
+    // ADD ADDITIONAL GLOBAL FILTERS HERE
+    // e.g. where.push(`"Emergency Services" = 'Yes'`);
+    // e.g. where.push(`"Hospital overall rating" IN ('4','5')`);
+    // ============================================================
+
+    const whereClause = where.length ? ` WHERE ${where.join(" AND ")}` : "";
+    return `[SELECT * FROM ${DATASET_DISTRIBUTION_ID}]${whereClause}[LIMIT ${limit}]`;
+  }
+
+  function escapeSql(str) {
+    // Basic SQL injection protection — escape single quotes
+    return str.replace(/'/g, "''");
+  }
+
+  // ============================================================
+  // SEARCH EXECUTION
+  // ============================================================
+  async function runSearch(event) {
+    event.preventDefault();
+
+    const query = buildQuery(activeTab);
+    if (!query) {
+      setStatus("Please enter a search term.");
+      return;
+    }
+
+    setStatus("Searching…");
+    showSpinner();
+
+    try {
+      const encoded = encodeURIComponent(query);
+      let url = `${API_BASE}?query=${encoded}`;
+      if (API_KEY) url += `&api_key=${encodeURIComponent(API_KEY)}`;
+
+      const res  = await fetch(url);
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(`API error: ${data.message || res.statusText}`);
+        setStatus("");
+        return;
+      }
+
+      if (!Array.isArray(data) || data.length === 0) {
+        showEmpty();
+        setStatus("No hospitals found matching your search.");
+        return;
+      }
+
+      renderResults(data);
+      setStatus(`Showing ${data.length} result${data.length !== 1 ? "s" : ""}${data.length === APP_CONFIG.RESULTS_LIMIT ? ` (limit ${APP_CONFIG.RESULTS_LIMIT})` : ""}.`);
+
+    } catch (err) {
+      showError(`Network error: ${err.message}`);
+      setStatus("");
+    }
+  }
+
+  // ============================================================
+  // RESULT RENDERING
+  // ============================================================
+  function renderResults(hospitals) {
+    const container = document.getElementById("results");
+    container.innerHTML = "";
+
+    hospitals.forEach(h => {
+      container.appendChild(buildCard(h));
+    });
+  }
+
+  function buildCard(h) {
+    const card = document.createElement("article");
+    card.className = "hospital-card";
+    card.setAttribute("role", "listitem");
+
+    // Rating
+    const rating = h["Hospital overall rating"];
+    const ratingHtml = (rating && rating !== "Not Available")
+      ? `<span class="rating-badge" aria-label="Overall rating ${rating} out of 5">⭐ ${rating} / 5</span>`
+      : `<span class="rating-badge no-rating" aria-label="Rating not available">No rating</span>`;
+
+    // Emergency services pill
+    const em = h["Emergency Services"];
+    const emHtml = em === "Yes"
+      ? `<span class="em-yes">🚨 Emergency</span>`
+      : `<span class="em-no">No ER</span>`;
+
+    // Address
+    const addressLine = [h["Address"], h["City/Town"], h["State"], h["ZIP Code"]]
+      .filter(Boolean).join(", ");
+
+    card.innerHTML = `
+      <div class="card-header">
+        <div>
+          <div class="hospital-name">${esc(h["Facility Name"] || "Unknown Hospital")}</div>
+        </div>
+        ${ratingHtml}
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <span class="info-label">Address</span>
+          <span class="info-value">${esc(addressLine)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Phone</span>
+          <span class="info-value">${esc(h["Telephone Number"] || "—")}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Type</span>
+          <span class="info-value">${esc(h["Hospital Type"] || "—")}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Ownership</span>
+          <span class="info-value">${esc(h["Hospital Ownership"] || "—")}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">County</span>
+          <span class="info-value">${esc(h["County/Parish"] || "—")}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Emergency Services</span>
+          <span class="info-value">${emHtml}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Birthing Friendly</span>
+          <span class="info-value">${h["Meets criteria for birthing friendly designation"] === "Y" ? "✅ Yes" : "—"}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Facility ID</span>
+          <span class="info-value">${esc(h["Facility ID"] || "—")}</span>
+        </div>
+      </div>
+      ${APP_CONFIG.SHOW_QUALITY_SCORES ? buildQualityChips(h) : ""}
+    `;
+
+    return card;
+  }
+
+  function buildQualityChips(h) {
+    const chips = [
+      { label: "Mortality",   better: h["Count of MORT Measures Better"],   worse: h["Count of MORT Measures Worse"]   },
+      { label: "Safety",      better: h["Count of Safety Measures Better"],  worse: h["Count of Safety Measures Worse"]  },
+      { label: "Readmission", better: h["Count of READM Measures Better"],   worse: h["Count of READM Measures Worse"]   },
+    ];
+
+    const chipHtml = chips.map(c => {
+      if (!c.better && !c.worse) return "";
+      return `<span class="q-chip"><strong>${c.label}</strong>: ${c.better || 0}↑ ${c.worse || 0}↓</span>`;
+    }).join("");
+
+    return chipHtml ? `<div class="quality-grid" aria-label="Quality measures summary">${chipHtml}</div>` : "";
+  }
+
+  // HTML-escape helper
+  function esc(str) {
+    return String(str)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  // ============================================================
+  // UI HELPERS
+  // ============================================================
+  function setStatus(msg) {
+    document.getElementById("status-bar").textContent = msg;
+  }
+
+  function showSpinner() {
+    document.getElementById("results").innerHTML = '<div class="spinner" role="status" aria-label="Loading"></div>';
+  }
+
+  function showEmpty() {
+    document.getElementById("results").innerHTML = `
+      <div class="state-empty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <p>No hospitals found. Try a different search term.</p>
+      </div>`;
+  }
+
+  function showError(msg) {
+    document.getElementById("results").innerHTML =
+      `<div class="error-msg" role="alert">⚠️ ${esc(msg)}</div>`;
+  }
+
+  function clearResults() {
+    document.getElementById("results").innerHTML = "";
+    setStatus("");
+    // Clear all inputs
+    ["input-city","input-zip","input-name"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    document.getElementById("input-state").value = APP_CONFIG.DEFAULT_STATE || "";
+  }
+
+  // ============================================================
+  // INITIALISATION
+  // ============================================================
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Apply APP_CONFIG to DOM
+    document.getElementById("page-title").textContent        = APP_CONFIG.PAGE_TITLE;
+    document.getElementById("page-subtitle").textContent     = APP_CONFIG.SUBTITLE;
+    document.getElementById("input-city").placeholder        = APP_CONFIG.SEARCH_PLACEHOLDER_CITY;
+    document.getElementById("input-zip").placeholder         = APP_CONFIG.SEARCH_PLACEHOLDER_ZIP;
+    document.getElementById("input-name").placeholder        = APP_CONFIG.SEARCH_PLACEHOLDER_NAME;
+    document.title = APP_CONFIG.PAGE_TITLE;
+
+    populateStateDropdown();
+    await loadApiKey();
+  });
+</script>
+
+</body>
+</html>
