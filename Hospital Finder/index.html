@@ -143,7 +143,7 @@
       from { opacity: 0; transform: translateY(6px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .message.user  { align-self: flex-end; flex-direction: row-reverse; }
+    .message.user      { align-self: flex-end; flex-direction: row-reverse; }
     .message.assistant { align-self: flex-start; }
 
     .avatar {
@@ -163,13 +163,13 @@
       font-size: .92rem;
       line-height: 1.6;
       box-shadow: var(--shadow-sm);
-      white-space: pre-wrap;
       word-break: break-word;
     }
-    .message.user      .bubble {
+    .message.user .bubble {
       background: var(--blue-mid);
       color: var(--white);
       border-bottom-right-radius: 3px;
+      white-space: pre-wrap;
     }
     .message.assistant .bubble {
       background: var(--white);
@@ -177,6 +177,101 @@
       border: 1px solid var(--gray-100);
       border-bottom-left-radius: 3px;
     }
+
+    /* ---- Markdown rendering inside assistant bubbles ---- */
+    .bubble h1, .bubble h2, .bubble h3 {
+      color: var(--blue-dark);
+      margin: .75rem 0 .3rem;
+      line-height: 1.3;
+    }
+    .bubble h1 { font-size: 1.1rem; }
+    .bubble h2 { font-size: 1rem; }
+    .bubble h3 { font-size: .95rem; }
+    .bubble p  { margin: .4rem 0; }
+    .bubble p:first-child { margin-top: 0; }
+    .bubble p:last-child  { margin-bottom: 0; }
+    .bubble strong { font-weight: 700; color: var(--blue-dark); }
+    .bubble em     { font-style: italic; }
+    .bubble ul, .bubble ol {
+      margin: .4rem 0 .4rem 1.25rem;
+      padding: 0;
+    }
+    .bubble li { margin: .2rem 0; }
+    .bubble code {
+      background: var(--gray-100);
+      border-radius: 4px;
+      padding: .1rem .35rem;
+      font-size: .85em;
+      font-family: 'Courier New', monospace;
+    }
+    .bubble pre {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-100);
+      border-radius: var(--radius);
+      padding: .75rem 1rem;
+      overflow-x: auto;
+      margin: .5rem 0;
+    }
+    .bubble pre code {
+      background: none;
+      padding: 0;
+      font-size: .85rem;
+    }
+    .bubble hr {
+      border: none;
+      border-top: 1px solid var(--gray-100);
+      margin: .6rem 0;
+    }
+    .bubble blockquote {
+      border-left: 3px solid var(--blue-light);
+      padding-left: .75rem;
+      color: var(--gray-400);
+      margin: .4rem 0;
+    }
+    .bubble table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: .5rem 0;
+      font-size: .85rem;
+    }
+    .bubble th, .bubble td {
+      border: 1px solid var(--gray-100);
+      padding: .35rem .65rem;
+      text-align: left;
+    }
+    .bubble th {
+      background: var(--blue-light);
+      color: var(--blue-dark);
+      font-weight: 700;
+    }
+    .bubble tr:nth-child(even) td { background: var(--gray-50); }
+
+    /* ---- See more/less toggle ---- */
+    .bubble-content {
+      overflow: hidden;
+      transition: max-height .3s ease;
+    }
+    .bubble-content.collapsed { max-height: 220px; position: relative; }
+    .bubble-content.collapsed::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 48px;
+      background: linear-gradient(transparent, var(--white));
+      pointer-events: none;
+    }
+    .see-more-btn {
+      display: block;
+      margin-top: .4rem;
+      background: none;
+      border: none;
+      color: var(--blue-mid);
+      font-size: .82rem;
+      cursor: pointer;
+      padding: 0;
+      font-family: var(--font);
+    }
+    .see-more-btn:hover { text-decoration: underline; }
 
     /* ---- Typing indicator ---- */
     .typing .bubble {
@@ -203,83 +298,6 @@
       background: #fde8e8;
       color: var(--red);
       border-color: #f5c6c6;
-    }
-
-    /* ---- Procedure search widget ---- */
-    .proc-bar {
-      background: var(--white);
-      border-bottom: 1px solid var(--gray-100);
-      padding: .5rem 1rem;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      gap: .6rem;
-      position: relative;
-    }
-    .proc-bar-label {
-      font-size: .8rem;
-      color: var(--blue-dark);
-      font-weight: 600;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    #proc-search {
-      flex: 1;
-      border: 1.5px solid var(--gray-300);
-      border-radius: var(--radius);
-      padding: .4rem .75rem;
-      font-size: .85rem;
-      outline: none;
-      transition: border-color .15s, box-shadow .15s;
-      background: var(--white);
-    }
-    #proc-search:focus {
-      border-color: var(--blue-mid);
-      box-shadow: 0 0 0 3px rgba(0,87,184,.1);
-    }
-    .proc-dropdown {
-      position: absolute;
-      top: calc(100% + 2px);
-      left: 1rem;
-      right: 1rem;
-      background: var(--white);
-      border: 1.5px solid var(--gray-300);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-md);
-      z-index: 100;
-      max-height: 240px;
-      overflow-y: auto;
-    }
-    .proc-dropdown[hidden] { display: none; }
-    .proc-dropdown ul {
-      list-style: none;
-      padding: .25rem 0;
-      margin: 0;
-    }
-    .proc-dropdown li {
-      padding: .4rem .85rem;
-      font-size: .82rem;
-      cursor: pointer;
-      display: flex;
-      gap: .6rem;
-      align-items: baseline;
-      transition: background .1s;
-    }
-    .proc-dropdown li:hover,
-    .proc-dropdown li[aria-selected="true"] { background: var(--blue-light); }
-    .proc-code {
-      font-weight: 700;
-      color: var(--blue-dark);
-      min-width: 36px;
-      font-size: .78rem;
-      flex-shrink: 0;
-    }
-    .proc-desc { color: var(--gray-700); }
-    .proc-hint {
-      padding: .5rem .85rem;
-      font-size: .8rem;
-      color: var(--gray-400);
-      font-style: italic;
     }
 
     /* ---- Suggestions ---- */
@@ -389,21 +407,6 @@
     </div>
     <span class="cms-badge">CMS Patient-Reported Outcomes Data</span>
   </header>
-
-  <!-- Procedure search -->
-  <div class="proc-bar">
-    <span class="proc-bar-label">� Procedures:</span>
-    <input
-      id="proc-search"
-      type="search"
-      placeholder="Type to search procedures (e.g. heart, hip, pneumonia…)"
-      aria-label="Search procedures"
-      aria-autocomplete="list"
-      aria-controls="proc-dropdown"
-      autocomplete="off"
-    />
-    <div class="proc-dropdown" id="proc-dropdown" hidden role="listbox" aria-label="Matching procedures"></div>
-  </div>
 
   <!-- Chat messages -->
   <div class="chat-window" id="chat-window" role="log" aria-live="polite" aria-label="Chat conversation"></div>
@@ -543,8 +546,96 @@
   }
 
   // ============================================================
+  // MARKDOWN RENDERER
+  // Converts a subset of markdown to safe HTML.
+  // Handles: headings, bold, italic, code, lists, tables, hr,
+  // blockquotes, and paragraphs.
+  // ============================================================
+  function renderMarkdown(text) {
+    // Escape raw HTML to prevent XSS, then selectively un-escape
+    // markdown constructs we want to render.
+    let t = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    // Fenced code blocks  ```lang\n...\n```
+    t = t.replace(/```[\w]*\n?([\s\S]*?)```/g, (_, code) =>
+      `<pre><code>${code.trim()}</code></pre>`);
+
+    // Headings
+    t = t.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+    t = t.replace(/^## (.+)$/gm,  "<h2>$1</h2>");
+    t = t.replace(/^# (.+)$/gm,   "<h1>$1</h1>");
+
+    // Horizontal rule
+    t = t.replace(/^[-*_]{3,}$/gm, "<hr>");
+
+    // Blockquote
+    t = t.replace(/^&gt; (.+)$/gm, "<blockquote>$1</blockquote>");
+
+    // Bold + italic
+    t = t.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
+    // Bold
+    t = t.replace(/\*\*(.+?)\*\*/g,     "<strong>$1</strong>");
+    t = t.replace(/__(.+?)__/g,          "<strong>$1</strong>");
+    // Italic
+    t = t.replace(/\*(.+?)\*/g,          "<em>$1</em>");
+    t = t.replace(/_(.+?)_/g,            "<em>$1</em>");
+
+    // Inline code
+    t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+    // Tables  (| col | col |)
+    t = t.replace(/(?:^|\n)((?:\|.+\|\n?)+)/g, (_, block) => {
+      const rows = block.trim().split("\n").filter(r => r.trim());
+      if (rows.length < 2) return _;
+      const headerCells = rows[0].split("|").filter(c => c.trim() !== "");
+      const isSep = rows[1].replace(/[\s|:-]/g, "") === "";
+      if (!isSep) return _;
+      const header = "<tr>" + headerCells.map(c => `<th>${c.trim()}</th>`).join("") + "</tr>";
+      const body = rows.slice(2).map(r => {
+        const cells = r.split("|").filter(c => c.trim() !== "");
+        return "<tr>" + cells.map(c => `<td>${c.trim()}</td>`).join("") + "</tr>";
+      }).join("");
+      return `<table><thead>${header}</thead><tbody>${body}</tbody></table>`;
+    });
+
+    // Unordered lists (lines starting with - or *)
+    t = t.replace(/((?:^[*\-] .+\n?)+)/gm, block => {
+      const items = block.trim().split("\n")
+        .map(l => `<li>${l.replace(/^[*\-] /, "").trim()}</li>`)
+        .join("");
+      return `<ul>${items}</ul>`;
+    });
+
+    // Ordered lists
+    t = t.replace(/((?:^\d+\. .+\n?)+)/gm, block => {
+      const items = block.trim().split("\n")
+        .map(l => `<li>${l.replace(/^\d+\. /, "").trim()}</li>`)
+        .join("");
+      return `<ol>${items}</ol>`;
+    });
+
+    // Paragraphs — wrap double-newline-separated blocks not already wrapped
+    t = t.split(/\n{2,}/).map(block => {
+      const b = block.trim();
+      if (!b) return "";
+      if (/^<(h[1-3]|ul|ol|pre|table|blockquote|hr)/.test(b)) return b;
+      // Single newlines within a paragraph → <br>
+      return `<p>${b.replace(/\n/g, "<br>")}</p>`;
+    }).join("\n");
+
+    return t;
+  }
+
+  // ============================================================
   // UI HELPERS
   // ============================================================
+
+  // How many characters before the "See more" toggle appears
+  const SEE_MORE_THRESHOLD = 600;
+
   function appendMessage(role, text, isError = false) {
     const window_ = document.getElementById("chat-window");
 
@@ -558,7 +649,31 @@
 
     const bubble = document.createElement("div");
     bubble.className = "bubble" + (isError ? " error" : "");
-    bubble.textContent = text;   // textContent prevents XSS
+
+    if (role === "user" || isError) {
+      // User messages and errors: plain text (XSS-safe)
+      bubble.textContent = text;
+    } else {
+      // Assistant messages: render markdown
+      const content = document.createElement("div");
+      content.className = "bubble-content";
+      content.innerHTML = renderMarkdown(text);
+      bubble.appendChild(content);
+
+      // Add "See more" toggle if response is long
+      if (text.length > SEE_MORE_THRESHOLD) {
+        content.classList.add("collapsed");
+        const btn = document.createElement("button");
+        btn.className = "see-more-btn";
+        btn.textContent = "▾ See more";
+        btn.addEventListener("click", () => {
+          const collapsed = content.classList.toggle("collapsed");
+          btn.textContent = collapsed ? "▾ See more" : "▴ See less";
+          if (!collapsed) scrollToBottom();
+        });
+        bubble.appendChild(btn);
+      }
+    }
 
     msg.appendChild(avatar);
     msg.appendChild(bubble);
@@ -605,110 +720,6 @@
     waiting = state;
     document.getElementById("send-btn").disabled = state;
     document.getElementById("user-input").disabled = state;
-  }
-
-  // ============================================================
-  // PROCEDURE SEARCH (live-as-you-type)
-  // ============================================================
-  let procDebounce = null;
-
-  document.getElementById("proc-search").addEventListener("input", function () {
-    clearTimeout(procDebounce);
-    const q = this.value.trim();
-    if (q.length < 2) {
-      hideProcDropdown();
-      return;
-    }
-    procDebounce = setTimeout(() => fetchProcedures(q), 250);
-  });
-
-  document.getElementById("proc-search").addEventListener("keydown", function (e) {
-    const dropdown = document.getElementById("proc-dropdown");
-    const items = [...dropdown.querySelectorAll("li[role='option']")];
-    const selected = dropdown.querySelector("li[aria-selected='true']");
-    const idx = items.indexOf(selected);
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      const next = items[idx + 1] || items[0];
-      if (next) selectProcItem(items, next);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      const prev = items[idx - 1] || items[items.length - 1];
-      if (prev) selectProcItem(items, prev);
-    } else if (e.key === "Enter" && selected) {
-      e.preventDefault();
-      chooseProcedure(selected.dataset.code, selected.dataset.desc);
-    } else if (e.key === "Escape") {
-      hideProcDropdown();
-    }
-  });
-
-  // Close dropdown when clicking outside
-  document.addEventListener("click", function (e) {
-    if (!e.target.closest(".proc-bar")) hideProcDropdown();
-  });
-
-  async function fetchProcedures(q) {
-    try {
-      const res  = await fetch(`${BACKEND_URL}/procedures/search?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      renderProcDropdown(data, q);
-    } catch (_) {
-      hideProcDropdown();
-    }
-  }
-
-  function renderProcDropdown(procedures, q) {
-    const dropdown = document.getElementById("proc-dropdown");
-
-    if (!procedures.length) {
-      dropdown.hidden = false;
-      dropdown.innerHTML = `<div class="proc-hint">No procedures match "${esc(q)}"</div>`;
-      return;
-    }
-
-    const ul = document.createElement("ul");
-    ul.setAttribute("role", "listbox");
-    procedures.forEach(p => {
-      const li = document.createElement("li");
-      li.setAttribute("role", "option");
-      li.setAttribute("aria-selected", "false");
-      li.dataset.code = p.code;
-      li.dataset.desc = p.description;
-      li.innerHTML = `<span class="proc-code">${esc(p.code)}</span><span class="proc-desc">${esc(p.description)}</span>`;
-      li.addEventListener("mousedown", (e) => {
-        e.preventDefault(); // prevent blur before click registers
-        chooseProcedure(p.code, p.description);
-      });
-      ul.appendChild(li);
-    });
-
-    dropdown.innerHTML = "";
-    dropdown.appendChild(ul);
-    dropdown.hidden = false;
-  }
-
-  function selectProcItem(items, target) {
-    items.forEach(i => i.setAttribute("aria-selected", "false"));
-    target.setAttribute("aria-selected", "true");
-    target.scrollIntoView({ block: "nearest" });
-  }
-
-  function chooseProcedure(code, desc) {
-    const input = document.getElementById("user-input");
-    input.value = `Tell me about hospitals that offer DRG ${code}: ${desc}`;
-    input.style.height = "auto";
-    input.style.height = Math.min(input.scrollHeight, 120) + "px";
-    document.getElementById("proc-search").value = "";
-    hideProcDropdown();
-    input.focus();
-  }
-
-  function hideProcDropdown() {
-    const dropdown = document.getElementById("proc-dropdown");
-    dropdown.hidden = true;
-    dropdown.innerHTML = "";
   }
 
   // ============================================================
