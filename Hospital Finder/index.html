@@ -28,10 +28,10 @@
     const BACKEND_URL = "https://hospital-finder-sltg.onrender.com";   // <-- PASTE YOUR RENDER URL HERE
 
     const UI_CONFIG = {
-      PAGE_TITLE:    "Hospital Finder",
+      PAGE_TITLE:    "Hospital Cost Comparer",
       SUBTITLE:      "Search Medicare inpatient hospitals and compare procedure costs",
-      PLACEHOLDER:   "e.g. Find hospitals in Boston, MA for cardiac procedures",
-      WELCOME_MSG:   "Hi! I can help you find hospitals and compare Medicare inpatient costs by procedure. Try asking about a specific city, state, ZIP code, hospital name, or procedure type.",
+      PLACEHOLDER:   "e.g. Compare costs for heart failure in California",
+      WELCOME_MSG:   "Hi! I can help you find hospitals and compare their Medicare inpatient costs by procedure. Try asking about a specific city, state, ZIP code, hospital name, or procedure type. Note that information is limited to the CMS dataset I work on for accurate information!",
       SUGGESTIONS: [
         "Find hospitals in California that perform heart failure procedures",
         "Compare costs for hip replacement in Texas",
@@ -405,7 +405,7 @@
       <h1 id="page-title">Hospital Finder</h1>
       <p id="page-subtitle"></p>
     </div>
-    <span class="cms-badge">CMS Patient-Reported Outcomes Data</span>
+    <span class="cms-badge">CMS Hospital Provider and Procedure Cost Data</span>
   </header>
 
   <!-- Chat messages -->
@@ -430,8 +430,8 @@
   </div>
 
   <footer>
-    Data: CMS Provider Data Catalog — Patient-Reported Outcomes &nbsp;|&nbsp;
-    AI responses may contain errors. Not medical advice.
+    Data: CMS Provider Data Catalog —  Hospitals by Provider and Service &nbsp;|&nbsp;
+    AI responses may contain errors. Do NOT use this chatbot to seek medical advice.
   </footer>
 
 </div>
