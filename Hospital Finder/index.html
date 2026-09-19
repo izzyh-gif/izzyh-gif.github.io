@@ -15,6 +15,18 @@
     ============================================================
   -->
   <script>
+    // ============================================================
+    // BACKEND URL CONFIGURATION
+    // ============================================================
+    // After deploying to Render, replace the empty string below
+    // with your Render service URL, e.g.:
+    //   const BACKEND_URL = "https://hospital-finder.onrender.com";
+    //
+    // Leave it as an empty string "" to use a relative /chat path,
+    // which works when running locally via `python app.py`.
+    // ============================================================
+    const BACKEND_URL = "";   // <-- PASTE YOUR RENDER URL HERE
+
     const UI_CONFIG = {
       PAGE_TITLE:    "Hospital Finder",
       SUBTITLE:      "Ask about hospitals and patient-reported outcomes for hip & knee replacements",
@@ -409,7 +421,7 @@
     setWaiting(true);
 
     try {
-      const res = await fetch("/chat", {
+      const res = await fetch(`${BACKEND_URL}/chat`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({

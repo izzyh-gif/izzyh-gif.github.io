@@ -5,18 +5,21 @@ Serves the frontend (index.html) and proxies chat requests to the OpenAI API.
 The CMS patient-reported outcomes CSV is loaded once at startup and used as
 context for every OpenAI query.
 
-Usage:
+Usage (local):
     python app.py
+    Then open http://localhost:5000
 
-The server runs at http://localhost:5000
+Usage (Render):
+    Deployed automatically via render.yaml.
+    Set the OPENAI_API_KEY environment variable in the Render dashboard.
+    The frontend (index.html on GitHub Pages) calls this server via RENDER_URL.
 """
 
 import csv
-import json
 import os
 import pathlib
 
-from flask import Flask, jsonify, render_template_string, request
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from openai import OpenAI
 
@@ -30,7 +33,9 @@ CONFIG = {
     # Path to the CMS CSV dataset, relative to this file
     "CSV_PATH": "PATIENT_REPORTED_OUTCOMES_FACILITY.csv",
 
-    # Path to the file containing your OpenAI API key (one line)
+    # Path to the file containing your OpenAI API key (one line).
+    # Used for local development only. On Render, the key is read
+    # from the OPENAI_API_KEY environment variable instead.
     "KEY_PATH": "private.txt",
 
     # OpenAI model to use for chat completions
@@ -42,10 +47,10 @@ CONFIG = {
     # this cap is applied. Lower = cheaper; higher = more context.
     "MAX_ROWS_IN_CONTEXT": 50,
 
-    # Flask host and port
-    "HOST": "127.0.0.1",
-    "PORT": 5000,
-    "DEBUG": True,
+    # Flask host and port (local only — Render overrides PORT via env var)
+    "HOST": "0.0.0.0",
+    "PORT": int(os.environ.get("PORT", 5000)),
+    "DEBUG": os.environ.get("RENDER") is None,  # disable debug on Render
 }
 
 # ============================================================
@@ -86,17 +91,34 @@ BASE_DIR = pathlib.Path(__file__).parent
 
 
 def load_api_key() -> str:
-    """Read the OpenAI API key from private.txt."""
+    """
+    Load the OpenAI API key.
+
+    Priority order:
+      1. OPENAI_API_KEY environment variable  — used on Render
+      2. private.txt file                     — used locally
+
+    This means you never need to change this function when
+    switching between local development and Render deployment.
+    """
+    # 1. Environment variable (Render sets this from the dashboard)
+    env_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if env_key:
+        print("[startup] Using API key from environment variable.")
+        return env_key
+
+    # 2. Local private.txt fallback
     key_path = BASE_DIR / CONFIG["KEY_PATH"]
     if not key_path.exists():
         raise FileNotFoundError(
-            f"API key file not found: {key_path}\n"
-            "Create a file called private.txt in the Hospital Finder folder "
-            "and paste your OpenAI API key into it."
+            f"API key not found. Either:\n"
+            f"  - Set the OPENAI_API_KEY environment variable (Render), or\n"
+            f"  - Create '{key_path}' with your key (local development)."
         )
     key = key_path.read_text().strip()
     if not key:
         raise ValueError("private.txt is empty. Add your OpenAI API key to it.")
+    print("[startup] Using API key from private.txt.")
     return key
 
 
@@ -126,7 +148,13 @@ openai_client = OpenAI(api_key=API_KEY)
 # ============================================================
 
 app = Flask(__name__, template_folder=str(BASE_DIR))
-CORS(app)  # Allow requests from the browser during local development
+
+# Allow requests from GitHub Pages and localhost
+CORS(app, origins=[
+    "https://izzyh-gif.github.io",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+])
 
 
 # ============================================================
@@ -262,5 +290,5 @@ def chat():
 # ============================================================
 
 if __name__ == "__main__":
-    print(f"\n Hospital Finder running at http://{CONFIG['HOST']}:{CONFIG['PORT']}\n")
+    print(f"\n🏥 Hospital Finder running at http://localhost:{CONFIG['PORT']}\n")
     app.run(host=CONFIG["HOST"], port=CONFIG["PORT"], debug=CONFIG["DEBUG"])

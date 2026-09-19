@@ -1,0 +1,31 @@
+# ============================================================
+# Render Deployment Configuration
+# ============================================================
+# This file tells Render how to build and run the Flask backend.
+#
+# Steps to deploy:
+#   1. Push this repo to GitHub (without private.txt)
+#   2. Go to https://render.com and create a free account
+#   3. Click "New" → "Web Service" → connect your GitHub repo
+#   4. Render will auto-detect this file and fill in the settings
+#   5. Under "Environment Variables", add:
+#        Key:   OPENAI_API_KEY
+#        Value: your OpenAI key (from private.txt)
+#   6. Click "Deploy" — Render gives you a URL like:
+#        https://hospital-finder-xxxx.onrender.com
+#   7. Paste that URL into BACKEND_URL in index.html
+# ============================================================
+
+services:
+  - type: web
+    name: hospital-finder
+    runtime: python
+    rootDir: Hospital Finder     # folder containing app.py
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false              # you set this manually in the Render dashboard
+      - key: RENDER
+        value: "true"            # tells app.py it's running on Render (disables debug)
+    plan: free

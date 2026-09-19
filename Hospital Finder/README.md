@@ -9,16 +9,27 @@ Ask natural-language questions like:
 
 ---
 
+## Architecture
+
+```
+Browser (GitHub Pages)  →  Render (Flask + Python)  →  OpenAI API
+       index.html               app.py                  gpt-4o-mini
+```
+
+The frontend lives on GitHub Pages. All OpenAI calls go through the Flask backend on Render, so your API key is never visible in the browser.
+
+---
+
 ## How it works
 
-1. **Flask backend (`app.py`)** loads the CMS CSV dataset at startup and serves the frontend.
+1. **Flask backend (`app.py`)** loads the CMS CSV dataset at startup and serves the `/chat` endpoint.
 2. When you ask a question, the backend filters the CSV to the most relevant rows and sends them as context to OpenAI.
 3. OpenAI returns a natural-language answer, which appears in the chat UI.
 4. Your API key never leaves the server — it is never exposed in the browser.
 
 ---
 
-## Setup
+## Local setup
 
 ### 1. Prerequisites
 
@@ -57,7 +68,7 @@ venv\Scripts\activate         # Windows
 pip install -r requirements.txt
 ```
 
-### 5. Run the app
+### 5. Run locally
 
 ```bash
 python app.py
@@ -67,16 +78,82 @@ Open your browser to **http://localhost:5000**
 
 ---
 
+## Render deployment (live public URL)
+
+Follow these steps to host the Flask backend on Render's free tier so the GitHub Pages frontend works publicly.
+
+### 1. Push to GitHub
+
+Make sure `private.txt` is **not** committed (it's in `.gitignore`). Push everything else:
+
+```bash
+git add .
+git commit -m "Add Hospital Finder app"
+git push
+```
+
+### 2. Create a Render account
+
+Go to [render.com](https://render.com) and sign up for free.
+
+### 3. Create a new Web Service
+
+1. Click **New** → **Web Service**
+2. Connect your GitHub account and select your repo
+3. Render will detect `render.yaml` automatically and pre-fill the settings
+4. Click **Create Web Service**
+
+### 4. Add your API key
+
+In the Render dashboard for your service:
+1. Go to **Environment** → **Environment Variables**
+2. Add a new variable:
+   - **Key:** `OPENAI_API_KEY`
+   - **Value:** your OpenAI key (the contents of your `private.txt`)
+3. Click **Save Changes** — Render will redeploy automatically
+
+### 5. Get your Render URL
+
+Once deployed, Render shows your service URL at the top of the dashboard, e.g.:
+```
+https://hospital-finder-xxxx.onrender.com
+```
+
+### 6. Update index.html
+
+Open `Hospital Finder/index.html` and paste your Render URL into `BACKEND_URL`:
+
+```js
+const BACKEND_URL = "https://hospital-finder-xxxx.onrender.com";
+```
+
+Commit and push that change:
+
+```bash
+git add "Hospital Finder/index.html"
+git commit -m "Set Render backend URL"
+git push
+```
+
+### 7. Done!
+
+Visit **`https://izzyh-gif.github.io/Hospital%20Finder/`** — the chat will now reach your live backend.
+
+> **Note:** Render's free tier spins down after 15 minutes of inactivity. The first request after a sleep may take ~30 seconds to respond. Subsequent requests are fast.
+
+---
+
 ## Project structure
 
 ```
 Hospital Finder/
-├── app.py                              # Flask backend + OpenAI proxy
-├── index.html                          # Chat UI frontend
-├── requirements.txt                    # Python dependencies
-├── README.md                           # This file
-├── PATIENT_REPORTED_OUTCOMES_FACILITY.csv  # CMS dataset
-└── private.txt                         # Your API key (NOT committed)
+├── app.py                                   # Flask backend + OpenAI proxy
+├── index.html                               # Chat UI (GitHub Pages frontend)
+├── render.yaml                              # Render deployment config
+├── requirements.txt                         # Python dependencies
+├── README.md                                # This file
+├── PATIENT_REPORTED_OUTCOMES_FACILITY.csv   # CMS dataset
+└── private.txt                              # Your API key (NOT committed)
 ```
 
 ---
@@ -84,7 +161,7 @@ Hospital Finder/
 ## Customisation
 
 ### Change the AI's behaviour
-Edit the `SYSTEM_PROMPT` string near the top of `app.py`. This controls how the assistant interprets questions and formats answers.
+Edit the `SYSTEM_PROMPT` string near the top of `app.py`.
 
 ### Change model, result limits, etc.
 Edit the `CONFIG` dictionary in `app.py`:
