@@ -1,11 +1,11 @@
-#How the API is called
+**How the API is called**
 
 I used the OpenAI API key to build an interactive chat that helps users compare costs of various procedures at different hospitals based on location. 
 The parameters are the model (I used gpt-4o-mini), messages, temperature, and max_tokens. You can get your own API key at platform.openai.com/api-keys. 
 To ensure the key stayed private, I implemented it in private.txt and listed that in .gitignore. I also didn't implement the API in the front-end, but instead implemented it in the back-end using Python, Flask, and Render to be safe.
 
 
-#Running the code
+**Running the code**
 
 You can access the web app at https://izzyh-gif.github.io/Hospital%20Finder/. 
 OR
@@ -13,7 +13,7 @@ Install dependencies with 'pip install -r requirements.txt' (requires Python 3.1
 
 
 
-#Key Prompt Log
+**Key Prompt Log**
 
 Model Used: Claude Sonnet 4.6 in Kiro IDE
 
