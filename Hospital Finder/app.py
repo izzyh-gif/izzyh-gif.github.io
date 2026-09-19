@@ -31,7 +31,7 @@ from openai import OpenAI
 
 CONFIG = {
     # Path to the CMS CSV dataset, relative to this file
-    "CSV_PATH": "PATIENT_REPORTED_OUTCOMES_FACILITY.csv",
+    "CSV_PATH": "Medicare_IP_Hospitals_by_Provider_and_Service_2024.csv",
 
     # Path to the file containing your OpenAI API key (one line).
     # Used for local development only. On Render, the key is read
@@ -62,25 +62,34 @@ CONFIG = {
 
 SYSTEM_PROMPT = """
 You are a helpful hospital finder assistant. You have access to a dataset of
-US hospitals with patient-reported outcome scores for hip and knee replacement
-surgeries (THA/TKA), sourced from the CMS Provider Data Catalog.
+US hospitals with Medicare inpatient cost data for 2024, sourced from the
+CMS Medicare Inpatient Hospitals by Provider and Service dataset.
 
-Each hospital record includes:
-- Facility ID, Facility Name, Address, City/Town, State, ZIP Code
-- County/Parish, Telephone Number
-- Measure ID and Measure Name (type of procedure)
-- Voluntary Reporting status
-- Score (performance relative to national average)
-- Start Date and End Date of the reporting period
+Each record represents a specific DRG (Diagnosis Related Group) procedure at
+a specific hospital and includes:
+- Rndrng_Prvdr_CCN: Provider CMS Certification Number
+- Rndrng_Prvdr_Org_Name: Hospital name
+- Rndrng_Prvdr_City: City
+- Rndrng_Prvdr_St: Street address
+- Rndrng_Prvdr_State_Abrvtn: State abbreviation
+- Rndrng_Prvdr_Zip5: ZIP code
+- Rndrng_Prvdr_RUCA_Desc: Rural/urban classification
+- DRG_Cd: DRG procedure code
+- DRG_Desc: DRG procedure description
+- Tot_Dschrgs: Total number of discharges for this procedure
+- Avg_Submtd_Cvrd_Chrg: Average submitted covered charge (billed amount)
+- Avg_Tot_Pymt_Amt: Average total payment amount
+- Avg_Mdcr_Pymt_Amt: Average Medicare payment amount
 
 When answering:
 - Help users find hospitals by name, city, state, or ZIP code.
-- Explain scores clearly: scores indicate performance relative to the
-  national average (better, worse, or no different).
-- If a score is "Not Available", mention that data is not reported.
+- Help users compare costs for specific procedures across hospitals.
+- Format dollar amounts clearly (e.g. $12,345.67).
+- Explain the difference between billed charges, total payment, and Medicare
+  payment when relevant.
 - Be concise but thorough. Format responses with clear structure.
 - If no matching hospitals are found in the provided data, say so clearly.
-- Do not make up hospital information. Only use the data provided.
+- Do not make up hospital or cost information. Only use the data provided.
 """
 
 # ============================================================
@@ -173,8 +182,8 @@ def filter_rows(query: str, rows: list[dict], max_rows: int) -> list[dict]:
 
     # Fields to search for relevance
     search_fields = [
-        "Facility Name", "City/Town", "State", "ZIP Code",
-        "County/Parish", "Measure Name",
+        "Rndrng_Prvdr_Org_Name", "Rndrng_Prvdr_City", "Rndrng_Prvdr_State_Abrvtn",
+        "Rndrng_Prvdr_Zip5", "DRG_Desc", "Rndrng_Prvdr_RUCA_Desc",
     ]
 
     scored: list[tuple[int, dict]] = []
@@ -201,14 +210,14 @@ def rows_to_text(rows: list[dict]) -> str:
     lines = []
     for row in rows:
         lines.append(
-            f"- {row.get('Facility Name', 'N/A')} | "
-            f"{row.get('City/Town', 'N/A')}, {row.get('State', 'N/A')} "
-            f"{row.get('ZIP Code', '')} | "
-            f"Phone: {row.get('Telephone Number', 'N/A')} | "
-            f"Measure: {row.get('Measure Name', 'N/A')} | "
-            f"Score: {row.get('Score', 'N/A')} | "
-            f"Voluntary: {row.get('Voluntary_Reporting', 'N/A')} | "
-            f"Period: {row.get('Start Date', '')}–{row.get('End Date', '')}"
+            f"- {row.get('Rndrng_Prvdr_Org_Name', 'N/A')} | "
+            f"{row.get('Rndrng_Prvdr_City', 'N/A')}, {row.get('Rndrng_Prvdr_State_Abrvtn', 'N/A')} "
+            f"{row.get('Rndrng_Prvdr_Zip5', '')} | "
+            f"DRG {row.get('DRG_Cd', 'N/A')}: {row.get('DRG_Desc', 'N/A')} | "
+            f"Discharges: {row.get('Tot_Dschrgs', 'N/A')} | "
+            f"Avg Billed: ${row.get('Avg_Submtd_Cvrd_Chrg', 'N/A')} | "
+            f"Avg Total Payment: ${row.get('Avg_Tot_Pymt_Amt', 'N/A')} | "
+            f"Avg Medicare Payment: ${row.get('Avg_Mdcr_Pymt_Amt', 'N/A')}"
         )
     return "\n".join(lines)
 
