@@ -233,6 +233,28 @@ def index():
     return html_path.read_text(encoding="utf-8")
 
 
+@app.route("/procedures")
+def procedures():
+    """
+    GET /procedures
+    Returns a sorted list of unique DRG procedures in the dataset.
+    Each item has { "code": "...", "description": "..." }.
+    Used by the frontend to populate the procedure browser panel.
+    """
+    seen = {}
+    for row in CSV_ROWS:
+        code = row.get("DRG_Cd", "").strip()
+        desc = row.get("DRG_Desc", "").strip()
+        if code and code not in seen:
+            seen[code] = desc
+
+    result = [
+        {"code": code, "description": desc}
+        for code, desc in sorted(seen.items(), key=lambda x: x[0].zfill(10))
+    ]
+    return jsonify(result)
+
+
 @app.route("/chat", methods=["POST"])
 def chat():
     """

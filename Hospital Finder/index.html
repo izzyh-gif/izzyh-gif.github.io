@@ -205,6 +205,92 @@
       border-color: #f5c6c6;
     }
 
+    /* ---- Procedure browser ---- */
+    .proc-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-100);
+      padding: .4rem 1rem;
+      flex-shrink: 0;
+    }
+    .proc-toggle-btn {
+      background: none;
+      border: 1.5px solid var(--blue-light);
+      color: var(--blue-mid);
+      border-radius: 20px;
+      padding: .3rem .9rem;
+      font-size: .82rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      transition: background .15s, border-color .15s;
+    }
+    .proc-toggle-btn:hover {
+      background: var(--blue-light);
+      border-color: var(--blue-mid);
+    }
+    .proc-toggle-btn[aria-expanded="true"] .proc-chevron { transform: rotate(180deg); }
+    .proc-chevron { display: inline-block; transition: transform .2s; font-style: normal; }
+
+    .proc-panel {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-100);
+      flex-shrink: 0;
+      max-height: 260px;
+      display: flex;
+      flex-direction: column;
+    }
+    .proc-panel[hidden] { display: none; }
+
+    .proc-search-row {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .6rem 1rem .4rem;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    #proc-search {
+      flex: 1;
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius);
+      padding: .4rem .75rem;
+      font-size: .85rem;
+      outline: none;
+      transition: border-color .15s;
+    }
+    #proc-search:focus { border-color: var(--blue-mid); }
+    .proc-count {
+      font-size: .75rem;
+      color: var(--gray-400);
+      white-space: nowrap;
+    }
+
+    .proc-list {
+      list-style: none;
+      overflow-y: auto;
+      flex: 1;
+      padding: .3rem 0;
+    }
+    .proc-list li {
+      padding: .35rem 1rem;
+      font-size: .82rem;
+      cursor: pointer;
+      display: flex;
+      gap: .6rem;
+      align-items: baseline;
+      transition: background .1s;
+    }
+    .proc-list li:hover { background: var(--blue-light); }
+    .proc-code {
+      font-weight: 700;
+      color: var(--blue-dark);
+      min-width: 36px;
+      font-size: .78rem;
+    }
+    .proc-desc { color: var(--gray-700); }
+    .proc-loading { color: var(--gray-400); font-style: italic; cursor: default !important; }
+    .proc-list li:hover.proc-loading { background: none; }
+
     /* ---- Suggestions ---- */
     .suggestions {
       padding: 0 1rem .5rem;
@@ -312,6 +398,28 @@
     </div>
     <span class="cms-badge">CMS Patient-Reported Outcomes Data</span>
   </header>
+
+  <!-- Procedure browser toggle -->
+  <div class="proc-bar">
+    <button class="proc-toggle-btn" id="proc-toggle" aria-expanded="false" aria-controls="proc-panel">
+      📋 Browse available procedures <span class="proc-chevron">▾</span>
+    </button>
+  </div>
+  <div class="proc-panel" id="proc-panel" hidden>
+    <div class="proc-search-row">
+      <input
+        id="proc-search"
+        type="search"
+        placeholder="Filter procedures…"
+        aria-label="Filter procedures"
+        autocomplete="off"
+      />
+      <span id="proc-count" class="proc-count"></span>
+    </div>
+    <ul class="proc-list" id="proc-list" role="list">
+      <li class="proc-loading">Loading procedures…</li>
+    </ul>
+  </div>
 
   <!-- Chat messages -->
   <div class="chat-window" id="chat-window" role="log" aria-live="polite" aria-label="Chat conversation"></div>
@@ -515,7 +623,85 @@
     document.getElementById("user-input").disabled = state;
   }
 
-  function scrollToBottom() {
+  // ============================================================
+  // PROCEDURE BROWSER
+  // ============================================================
+  let allProcedures = [];   // [{code, description}, ...]
+  let proceduresLoaded = false;
+
+  document.getElementById("proc-toggle").addEventListener("click", async () => {
+    const btn   = document.getElementById("proc-toggle");
+    const panel = document.getElementById("proc-panel");
+    const open  = btn.getAttribute("aria-expanded") === "true";
+
+    btn.setAttribute("aria-expanded", String(!open));
+    panel.hidden = open;
+
+    if (!open && !proceduresLoaded) {
+      await loadProcedures();
+    }
+  });
+
+  document.getElementById("proc-search").addEventListener("input", function () {
+    renderProcedureList(this.value.trim().toLowerCase());
+  });
+
+  async function loadProcedures() {
+    try {
+      const res  = await fetch(`${BACKEND_URL}/procedures`);
+      const data = await res.json();
+      allProcedures    = data;
+      proceduresLoaded = true;
+      renderProcedureList("");
+    } catch (err) {
+      document.getElementById("proc-list").innerHTML =
+        `<li class="proc-loading">⚠️ Could not load procedures: ${esc(err.message)}</li>`;
+    }
+  }
+
+  function renderProcedureList(filter) {
+    const list = document.getElementById("proc-list");
+    const count = document.getElementById("proc-count");
+
+    const filtered = filter
+      ? allProcedures.filter(p =>
+          p.code.toLowerCase().includes(filter) ||
+          p.description.toLowerCase().includes(filter)
+        )
+      : allProcedures;
+
+    count.textContent = `${filtered.length} procedure${filtered.length !== 1 ? "s" : ""}`;
+
+    if (filtered.length === 0) {
+      list.innerHTML = `<li class="proc-loading">No procedures match "${esc(filter)}"</li>`;
+      return;
+    }
+
+    // Render up to 300 items for performance
+    const toShow = filtered.slice(0, 300);
+    list.innerHTML = toShow.map(p => `
+      <li role="listitem" data-code="${esc(p.code)}" data-desc="${esc(p.description)}">
+        <span class="proc-code">${esc(p.code)}</span>
+        <span class="proc-desc">${esc(p.description)}</span>
+      </li>
+    `).join("");
+
+    // Clicking a procedure pre-fills the chat input
+    list.querySelectorAll("li[data-code]").forEach(li => {
+      li.addEventListener("click", () => {
+        const input = document.getElementById("user-input");
+        input.value = `Tell me about hospitals that offer DRG ${li.dataset.code}: ${li.dataset.desc}`;
+        input.style.height = "auto";
+        input.style.height = Math.min(input.scrollHeight, 120) + "px";
+        // Close the panel
+        document.getElementById("proc-toggle").setAttribute("aria-expanded", "false");
+        document.getElementById("proc-panel").hidden = true;
+        input.focus();
+      });
+    });
+  }
+
+
     const w = document.getElementById("chat-window");
     w.scrollTop = w.scrollHeight;
   }
