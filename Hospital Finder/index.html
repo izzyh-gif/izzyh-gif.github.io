@@ -205,49 +205,23 @@
       border-color: #f5c6c6;
     }
 
-    /* ---- Procedure browser ---- */
+    /* ---- Procedure search widget ---- */
     .proc-bar {
       background: var(--white);
       border-bottom: 1px solid var(--gray-100);
-      padding: .4rem 1rem;
+      padding: .5rem 1rem;
       flex-shrink: 0;
-    }
-    .proc-toggle-btn {
-      background: none;
-      border: 1.5px solid var(--blue-light);
-      color: var(--blue-mid);
-      border-radius: 20px;
-      padding: .3rem .9rem;
-      font-size: .82rem;
-      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: .4rem;
-      transition: background .15s, border-color .15s;
+      gap: .6rem;
+      position: relative;
     }
-    .proc-toggle-btn:hover {
-      background: var(--blue-light);
-      border-color: var(--blue-mid);
-    }
-    .proc-toggle-btn[aria-expanded="true"] .proc-chevron { transform: rotate(180deg); }
-    .proc-chevron { display: inline-block; transition: transform .2s; font-style: normal; }
-
-    .proc-panel {
-      background: var(--white);
-      border-bottom: 1px solid var(--gray-100);
+    .proc-bar-label {
+      font-size: .8rem;
+      color: var(--blue-dark);
+      font-weight: 600;
+      white-space: nowrap;
       flex-shrink: 0;
-      max-height: 260px;
-      display: flex;
-      flex-direction: column;
-    }
-    .proc-panel[hidden] { display: none; }
-
-    .proc-search-row {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      padding: .6rem 1rem .4rem;
-      border-bottom: 1px solid var(--gray-100);
     }
     #proc-search {
       flex: 1;
@@ -256,23 +230,34 @@
       padding: .4rem .75rem;
       font-size: .85rem;
       outline: none;
-      transition: border-color .15s;
+      transition: border-color .15s, box-shadow .15s;
+      background: var(--white);
     }
-    #proc-search:focus { border-color: var(--blue-mid); }
-    .proc-count {
-      font-size: .75rem;
-      color: var(--gray-400);
-      white-space: nowrap;
+    #proc-search:focus {
+      border-color: var(--blue-mid);
+      box-shadow: 0 0 0 3px rgba(0,87,184,.1);
     }
-
-    .proc-list {
-      list-style: none;
+    .proc-dropdown {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 1rem;
+      right: 1rem;
+      background: var(--white);
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      z-index: 100;
+      max-height: 240px;
       overflow-y: auto;
-      flex: 1;
-      padding: .3rem 0;
     }
-    .proc-list li {
-      padding: .35rem 1rem;
+    .proc-dropdown[hidden] { display: none; }
+    .proc-dropdown ul {
+      list-style: none;
+      padding: .25rem 0;
+      margin: 0;
+    }
+    .proc-dropdown li {
+      padding: .4rem .85rem;
       font-size: .82rem;
       cursor: pointer;
       display: flex;
@@ -280,16 +265,22 @@
       align-items: baseline;
       transition: background .1s;
     }
-    .proc-list li:hover { background: var(--blue-light); }
+    .proc-dropdown li:hover,
+    .proc-dropdown li[aria-selected="true"] { background: var(--blue-light); }
     .proc-code {
       font-weight: 700;
       color: var(--blue-dark);
       min-width: 36px;
       font-size: .78rem;
+      flex-shrink: 0;
     }
     .proc-desc { color: var(--gray-700); }
-    .proc-loading { color: var(--gray-400); font-style: italic; cursor: default !important; }
-    .proc-list li:hover.proc-loading { background: none; }
+    .proc-hint {
+      padding: .5rem .85rem;
+      font-size: .8rem;
+      color: var(--gray-400);
+      font-style: italic;
+    }
 
     /* ---- Suggestions ---- */
     .suggestions {
@@ -399,26 +390,19 @@
     <span class="cms-badge">CMS Patient-Reported Outcomes Data</span>
   </header>
 
-  <!-- Procedure browser toggle -->
+  <!-- Procedure search -->
   <div class="proc-bar">
-    <button class="proc-toggle-btn" id="proc-toggle" aria-expanded="false" aria-controls="proc-panel">
-      📋 Browse available procedures <span class="proc-chevron">▾</span>
-    </button>
-  </div>
-  <div class="proc-panel" id="proc-panel" hidden>
-    <div class="proc-search-row">
-      <input
-        id="proc-search"
-        type="search"
-        placeholder="Filter procedures…"
-        aria-label="Filter procedures"
-        autocomplete="off"
-      />
-      <span id="proc-count" class="proc-count"></span>
-    </div>
-    <ul class="proc-list" id="proc-list" role="list">
-      <li class="proc-loading">Loading procedures…</li>
-    </ul>
+    <span class="proc-bar-label">� Procedures:</span>
+    <input
+      id="proc-search"
+      type="search"
+      placeholder="Type to search procedures (e.g. heart, hip, pneumonia…)"
+      aria-label="Search procedures"
+      aria-autocomplete="list"
+      aria-controls="proc-dropdown"
+      autocomplete="off"
+    />
+    <div class="proc-dropdown" id="proc-dropdown" hidden role="listbox" aria-label="Matching procedures"></div>
   </div>
 
   <!-- Chat messages -->
@@ -624,81 +608,107 @@
   }
 
   // ============================================================
-  // PROCEDURE BROWSER
+  // PROCEDURE SEARCH (live-as-you-type)
   // ============================================================
-  let allProcedures = [];   // [{code, description}, ...]
-  let proceduresLoaded = false;
+  let procDebounce = null;
 
-  document.getElementById("proc-toggle").addEventListener("click", async () => {
-    const btn   = document.getElementById("proc-toggle");
-    const panel = document.getElementById("proc-panel");
-    const open  = btn.getAttribute("aria-expanded") === "true";
+  document.getElementById("proc-search").addEventListener("input", function () {
+    clearTimeout(procDebounce);
+    const q = this.value.trim();
+    if (q.length < 2) {
+      hideProcDropdown();
+      return;
+    }
+    procDebounce = setTimeout(() => fetchProcedures(q), 250);
+  });
 
-    btn.setAttribute("aria-expanded", String(!open));
-    panel.hidden = open;
+  document.getElementById("proc-search").addEventListener("keydown", function (e) {
+    const dropdown = document.getElementById("proc-dropdown");
+    const items = [...dropdown.querySelectorAll("li[role='option']")];
+    const selected = dropdown.querySelector("li[aria-selected='true']");
+    const idx = items.indexOf(selected);
 
-    if (!open && !proceduresLoaded) {
-      await loadProcedures();
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = items[idx + 1] || items[0];
+      if (next) selectProcItem(items, next);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const prev = items[idx - 1] || items[items.length - 1];
+      if (prev) selectProcItem(items, prev);
+    } else if (e.key === "Enter" && selected) {
+      e.preventDefault();
+      chooseProcedure(selected.dataset.code, selected.dataset.desc);
+    } else if (e.key === "Escape") {
+      hideProcDropdown();
     }
   });
 
-  document.getElementById("proc-search").addEventListener("input", function () {
-    renderProcedureList(this.value.trim().toLowerCase());
+  // Close dropdown when clicking outside
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest(".proc-bar")) hideProcDropdown();
   });
 
-  async function loadProcedures() {
+  async function fetchProcedures(q) {
     try {
-      const res  = await fetch(`${BACKEND_URL}/procedures`);
+      const res  = await fetch(`${BACKEND_URL}/procedures/search?q=${encodeURIComponent(q)}`);
       const data = await res.json();
-      allProcedures    = data;
-      proceduresLoaded = true;
-      renderProcedureList("");
-    } catch (err) {
-      document.getElementById("proc-list").innerHTML =
-        `<li class="proc-loading">⚠️ Could not load procedures: ${esc(err.message)}</li>`;
+      renderProcDropdown(data, q);
+    } catch (_) {
+      hideProcDropdown();
     }
   }
 
-  function renderProcedureList(filter) {
-    const list = document.getElementById("proc-list");
-    const count = document.getElementById("proc-count");
+  function renderProcDropdown(procedures, q) {
+    const dropdown = document.getElementById("proc-dropdown");
 
-    const filtered = filter
-      ? allProcedures.filter(p =>
-          p.code.toLowerCase().includes(filter) ||
-          p.description.toLowerCase().includes(filter)
-        )
-      : allProcedures;
-
-    count.textContent = `${filtered.length} procedure${filtered.length !== 1 ? "s" : ""}`;
-
-    if (filtered.length === 0) {
-      list.innerHTML = `<li class="proc-loading">No procedures match "${esc(filter)}"</li>`;
+    if (!procedures.length) {
+      dropdown.hidden = false;
+      dropdown.innerHTML = `<div class="proc-hint">No procedures match "${esc(q)}"</div>`;
       return;
     }
 
-    // Render up to 300 items for performance
-    const toShow = filtered.slice(0, 300);
-    list.innerHTML = toShow.map(p => `
-      <li role="listitem" data-code="${esc(p.code)}" data-desc="${esc(p.description)}">
-        <span class="proc-code">${esc(p.code)}</span>
-        <span class="proc-desc">${esc(p.description)}</span>
-      </li>
-    `).join("");
-
-    // Clicking a procedure pre-fills the chat input
-    list.querySelectorAll("li[data-code]").forEach(li => {
-      li.addEventListener("click", () => {
-        const input = document.getElementById("user-input");
-        input.value = `Tell me about hospitals that offer DRG ${li.dataset.code}: ${li.dataset.desc}`;
-        input.style.height = "auto";
-        input.style.height = Math.min(input.scrollHeight, 120) + "px";
-        // Close the panel
-        document.getElementById("proc-toggle").setAttribute("aria-expanded", "false");
-        document.getElementById("proc-panel").hidden = true;
-        input.focus();
+    const ul = document.createElement("ul");
+    ul.setAttribute("role", "listbox");
+    procedures.forEach(p => {
+      const li = document.createElement("li");
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", "false");
+      li.dataset.code = p.code;
+      li.dataset.desc = p.description;
+      li.innerHTML = `<span class="proc-code">${esc(p.code)}</span><span class="proc-desc">${esc(p.description)}</span>`;
+      li.addEventListener("mousedown", (e) => {
+        e.preventDefault(); // prevent blur before click registers
+        chooseProcedure(p.code, p.description);
       });
+      ul.appendChild(li);
     });
+
+    dropdown.innerHTML = "";
+    dropdown.appendChild(ul);
+    dropdown.hidden = false;
+  }
+
+  function selectProcItem(items, target) {
+    items.forEach(i => i.setAttribute("aria-selected", "false"));
+    target.setAttribute("aria-selected", "true");
+    target.scrollIntoView({ block: "nearest" });
+  }
+
+  function chooseProcedure(code, desc) {
+    const input = document.getElementById("user-input");
+    input.value = `Tell me about hospitals that offer DRG ${code}: ${desc}`;
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 120) + "px";
+    document.getElementById("proc-search").value = "";
+    hideProcDropdown();
+    input.focus();
+  }
+
+  function hideProcDropdown() {
+    const dropdown = document.getElementById("proc-dropdown");
+    dropdown.hidden = true;
+    dropdown.innerHTML = "";
   }
 
   // ============================================================

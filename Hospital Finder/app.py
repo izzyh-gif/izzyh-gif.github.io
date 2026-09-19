@@ -90,6 +90,7 @@ When answering:
 - Be concise but thorough. Format responses with clear structure.
 - If no matching hospitals are found in the provided data, say so clearly.
 - Do not make up hospital or cost information. Only use the data provided.
+- Assume users do not have prior medical experience. Make explanations easily understandable and digestible to all backgrounds.s
 """
 
 # ============================================================
@@ -232,29 +233,32 @@ def index():
     html_path = BASE_DIR / "index.html"
     return html_path.read_text(encoding="utf-8")
 
+@app.route("/procedures/search")
+def procedures_search():
+    """
+    GET /procedures/search?q=<term>
+    Returns up to 20 DRG procedures whose code or description
+    contains the search term. Called live as the user types.
+    """
+    q = request.args.get("q", "").strip().lower()
+    if not q or len(q) < 2:
+        return jsonify([])
 
-@app.route("/procedures")
-def procedures():
-    """
-    GET /procedures
-    Returns a sorted list of unique DRG procedures in the dataset.
-    Each item has { "code": "...", "description": "..." }.
-    Used by the frontend to populate the procedure browser panel.
-    """
     seen = {}
     for row in CSV_ROWS:
         code = row.get("DRG_Cd", "").strip()
         desc = row.get("DRG_Desc", "").strip()
         if code and code not in seen:
-            seen[code] = desc
+            if q in code.lower() or q in desc.lower():
+                seen[code] = desc
+        if len(seen) >= 20:
+            break
 
-    result = [
-        {"code": code, "description": desc}
-        for code, desc in sorted(seen.items(), key=lambda x: x[0].zfill(10))
-    ]
+    result = [{"code": c, "description": d} for c, d in sorted(seen.items())]
     return jsonify(result)
 
 
+@app.route("/chat", methods=["POST"])
 @app.route("/chat", methods=["POST"])
 def chat():
     """
