@@ -127,12 +127,10 @@
 
     .logo {
       width: 36px; height: 36px;
-      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
       border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem;
       flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(59,130,246,.4);
+      overflow: hidden;
     }
 
     .header-text { flex: 1; min-width: 0; }
@@ -212,8 +210,7 @@
       letter-spacing: -.5px;
     }
     .message.assistant .avatar {
-      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
-      box-shadow: 0 2px 6px rgba(59,130,246,.35);
+      background: none;
     }
 
     /* Bubble wrapper */
@@ -495,7 +492,7 @@
 
   <!-- Header -->
   <header>
-    <div class="logo" aria-hidden="true">🏥</div>
+    <div class="logo" aria-hidden="true"></div>
     <div class="header-text">
       <h1 id="page-title">Hospital Cost Comparer</h1>
       <p id="page-subtitle"></p>
@@ -534,6 +531,57 @@
 
 <script>
   // ============================================================
+  // HOSPITAL SVG ICON (used in header logo + chat avatars)
+  // Matches the reference: blue circle, white building, blue
+  // windows, orange cross on roof.
+  // ============================================================
+  const HOSPITAL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Hospital icon">
+    <!-- blue circle background -->
+    <circle cx="50" cy="50" r="50" fill="#29abe2"/>
+    <!-- green ground -->
+    <ellipse cx="50" cy="92" rx="40" ry="12" fill="#8dc63f"/>
+    <!-- left wing -->
+    <rect x="10" y="42" width="22" height="42" rx="1" fill="#e6e6e6"/>
+    <!-- right wing -->
+    <rect x="68" y="42" width="22" height="42" rx="1" fill="#e6e6e6"/>
+    <!-- main building -->
+    <rect x="28" y="28" width="44" height="56" rx="1" fill="#f2f2f2"/>
+    <!-- entrance canopy -->
+    <rect x="34" y="68" width="32" height="5" rx="1" fill="#b0b0b0"/>
+    <!-- entrance door -->
+    <rect x="40" y="73" width="20" height="11" rx="1" fill="#707070"/>
+    <!-- left wing windows -->
+    <rect x="14" y="48" width="7" height="6" rx="1" fill="#6ec6f0"/>
+    <rect x="23" y="48" width="3" height="6" rx="1" fill="#6ec6f0"/>
+    <rect x="14" y="58" width="7" height="6" rx="1" fill="#6ec6f0"/>
+    <rect x="23" y="58" width="3" height="6" rx="1" fill="#6ec6f0"/>
+    <rect x="14" y="68" width="7" height="6" rx="1" fill="#6ec6f0"/>
+    <rect x="23" y="68" width="3" height="6" rx="1" fill="#6ec6f0"/>
+    <!-- right wing windows -->
+    <rect x="70" y="48" width="7" height="6" rx="1" fill="#6ec6f0"/>
+    <rect x="79" y="48" width="7" height="6" rx="1" fill="#6ec6f0"/>
+    <rect x="70" y="58" width="7" height="6" rx="1" fill="#6ec6f0"/>
+    <rect x="79" y="58" width="7" height="6" rx="1" fill="#6ec6f0"/>
+    <rect x="70" y="68" width="7" height="6" rx="1" fill="#6ec6f0"/>
+    <rect x="79" y="68" width="7" height="6" rx="1" fill="#6ec6f0"/>
+    <!-- main building windows row 1 -->
+    <rect x="32" y="34" width="9" height="8" rx="1" fill="#6ec6f0"/>
+    <rect x="45" y="34" width="9" height="8" rx="1" fill="#6ec6f0"/>
+    <rect x="58" y="34" width="9" height="8" rx="1" fill="#6ec6f0"/>
+    <!-- main building windows row 2 -->
+    <rect x="32" y="46" width="9" height="8" rx="1" fill="#6ec6f0"/>
+    <rect x="45" y="46" width="9" height="8" rx="1" fill="#6ec6f0"/>
+    <rect x="58" y="46" width="9" height="8" rx="1" fill="#6ec6f0"/>
+    <!-- main building windows row 3 -->
+    <rect x="32" y="58" width="9" height="8" rx="1" fill="#6ec6f0"/>
+    <rect x="58" y="58" width="9" height="8" rx="1" fill="#6ec6f0"/>
+    <!-- orange cross circle on roof -->
+    <circle cx="50" cy="20" r="9" fill="#f7941d"/>
+    <rect x="48" y="14" width="4" height="12" rx="1" fill="white"/>
+    <rect x="44" y="18" width="12" height="4" rx="1" fill="white"/>
+  </svg>`;
+
+  // ============================================================
   // STATE
   // ============================================================
   const history = [];
@@ -550,6 +598,9 @@
 
     buildSuggestions();
     appendMessage("assistant", UI_CONFIG.WELCOME_MSG);
+
+    // Inject SVG into header logo
+    document.querySelector(".logo").innerHTML = HOSPITAL_SVG;
 
     document.getElementById("user-input").addEventListener("keydown", e => {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -678,7 +729,9 @@
 
     t = t.replace(/((?:^\d+\. .+\n?)+)/gm, block => {
       const items = block.trim().split("\n")
-        .map(l => `<li>${l.replace(/^\d+\. /, "").trim()}</li>`).join("");
+        .filter(l => /^\d+\. /.test(l))
+        .map((l, i) => `<li value="${i + 1}">${l.replace(/^\d+\. /, "").trim()}</li>`)
+        .join("");
       return `<ol>${items}</ol>`;
     });
 
@@ -707,7 +760,11 @@
     const avatar = document.createElement("div");
     avatar.className = "avatar";
     avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = role === "user" ? "U" : "🏥";
+    if (role === "user") {
+      avatar.textContent = "U";
+    } else {
+      avatar.innerHTML = HOSPITAL_SVG;
+    }
 
     // Bubble wrapper
     const wrap = document.createElement("div");
@@ -764,7 +821,7 @@
     const avatar = document.createElement("div");
     avatar.className = "avatar";
     avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = "🏥";
+    avatar.innerHTML = HOSPITAL_SVG;
 
     const wrap = document.createElement("div");
     wrap.className = "bubble-wrap";
