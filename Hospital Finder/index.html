@@ -54,22 +54,22 @@
        DESIGN TOKENS
     ============================================================ */
     :root {
-      --bg:           #0d0d0f;
-      --surface:      #18181b;
-      --surface-2:    #222227;
-      --surface-3:    #2a2a31;
-      --border:       rgba(255,255,255,.08);
-      --border-focus: rgba(99,179,237,.5);
+      --bg:           #f5f7fa;
+      --surface:      #ffffff;
+      --surface-2:    #f0f4f8;
+      --surface-3:    #e4eaf1;
+      --border:       rgba(0,0,0,.08);
+      --border-focus: rgba(59,130,246,.45);
 
       --accent:       #3b82f6;
       --accent-hover: #2563eb;
-      --accent-glow:  rgba(59,130,246,.25);
+      --accent-glow:  rgba(59,130,246,.18);
 
-      --text-primary:   #f1f5f9;
-      --text-secondary: #94a3b8;
-      --text-muted:     #4b5563;
+      --text-primary:   #0f172a;
+      --text-secondary: #475569;
+      --text-muted:     #94a3b8;
 
-      --user-bubble:    #1d4ed8;
+      --user-bubble:    #2563eb;
       --user-text:      #ffffff;
 
       --red:   #ef4444;
@@ -80,7 +80,7 @@
       --radius-sm: 8px;
 
       --shadow-glow: 0 0 0 3px var(--accent-glow);
-      --shadow-card: 0 4px 24px rgba(0,0,0,.4);
+      --shadow-card: 0 4px 24px rgba(0,0,0,.08);
     }
 
     /* ============================================================
@@ -107,8 +107,7 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
-      max-width: 780px;
-      margin: 0 auto;
+      width: 100%;
     }
 
     /* ============================================================
@@ -246,9 +245,9 @@
       border-bottom-left-radius: 4px;
     }
     .bubble.error {
-      background: rgba(239,68,68,.12);
-      border-color: rgba(239,68,68,.3);
-      color: #fca5a5;
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #b91c1c;
     }
 
     /* ============================================================
@@ -274,13 +273,13 @@
     }
     .bubble li { margin: .25rem 0; }
     .bubble code {
-      background: var(--surface-3);
+      background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 5px;
       padding: .1rem .4rem;
       font-size: .82em;
       font-family: 'JetBrains Mono', 'Fira Code', monospace;
-      color: #93c5fd;
+      color: #1d4ed8;
     }
     .bubble pre {
       background: var(--surface-2);
@@ -323,7 +322,7 @@
       color: #93c5fd;
       font-weight: 600;
     }
-    .bubble tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+    .bubble tr:nth-child(even) td { background: var(--surface-2); }
 
     /* ============================================================
        SEE MORE / LESS
@@ -423,6 +422,7 @@
       padding: .75rem 1.25rem 1rem;
       flex-shrink: 0;
       background: var(--bg);
+      border-top: 1px solid var(--border);
     }
     .input-box {
       display: flex;
