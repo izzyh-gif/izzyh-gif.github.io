@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hospital Finder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!--
     ============================================================
@@ -25,13 +28,13 @@
     // Leave it as an empty string "" to use a relative /chat path,
     // which works when running locally via `python app.py`.
     // ============================================================
-    const BACKEND_URL = "https://hospital-finder-sltg.onrender.com";   // <-- PASTE YOUR RENDER URL HERE
+    const BACKEND_URL = "https://hospital-finder-sltg.onrender.com";
 
     const UI_CONFIG = {
-      PAGE_TITLE:    "Hospital Cost Comparer",
-      SUBTITLE:      "Search Medicare inpatient hospitals and compare procedure costs",
-      PLACEHOLDER:   "e.g. Compare costs for heart failure in California",
-      WELCOME_MSG:   "Hi! I can help you find hospitals and compare their Medicare inpatient costs by procedure. Try asking about a specific city, state, ZIP code, hospital name, or procedure type. Note that information is limited to the CMS dataset I work on for accurate information!",
+      PAGE_TITLE:  "Hospital Cost Comparer",
+      SUBTITLE:    "Search Medicare inpatient hospitals and compare procedure costs",
+      PLACEHOLDER: "Ask about hospitals, procedures, or costs…",
+      WELCOME_MSG: "Hi! I can help you find hospitals and compare their Medicare inpatient costs by procedure. Try asking about a specific city, state, ZIP code, hospital name, or procedure type. Note that information is limited to the CMS dataset I work on for accurate information!",
       SUGGESTIONS: [
         "Find hospitals in California that perform heart failure procedures",
         "Compare costs for hip replacement in Texas",
@@ -47,242 +50,325 @@
   -->
 
   <style>
-    /* ---- Design tokens ---- */
+    /* ============================================================
+       DESIGN TOKENS
+    ============================================================ */
     :root {
-      --blue-dark:   #003087;
-      --blue-mid:    #0057b8;
-      --blue-light:  #d6e8ff;
-      --blue-accent: #00a0d2;
-      --white:       #ffffff;
-      --gray-50:     #f4f7fb;
-      --gray-100:    #e8edf5;
-      --gray-300:    #c5d0de;
-      --gray-400:    #8899aa;
-      --gray-700:    #334155;
-      --red:         #c0392b;
-      --font:        'Segoe UI', Arial, sans-serif;
-      --radius:      10px;
-      --shadow-sm:   0 1px 3px rgba(0,0,0,.1);
-      --shadow-md:   0 4px 16px rgba(0,0,0,.12);
+      --bg:           #0d0d0f;
+      --surface:      #18181b;
+      --surface-2:    #222227;
+      --surface-3:    #2a2a31;
+      --border:       rgba(255,255,255,.08);
+      --border-focus: rgba(99,179,237,.5);
+
+      --accent:       #3b82f6;
+      --accent-hover: #2563eb;
+      --accent-glow:  rgba(59,130,246,.25);
+
+      --text-primary:   #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted:     #4b5563;
+
+      --user-bubble:    #1d4ed8;
+      --user-text:      #ffffff;
+
+      --red:   #ef4444;
+      --green: #22c55e;
+
+      --font:   'Inter', system-ui, sans-serif;
+      --radius: 14px;
+      --radius-sm: 8px;
+
+      --shadow-glow: 0 0 0 3px var(--accent-glow);
+      --shadow-card: 0 4px 24px rgba(0,0,0,.4);
     }
 
+    /* ============================================================
+       RESET & BASE
+    ============================================================ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
       height: 100%;
       font-family: var(--font);
-      background: var(--gray-50);
-      color: var(--gray-700);
+      background: var(--bg);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ---- Layout ---- */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 99px; }
+
+    /* ============================================================
+       APP SHELL
+    ============================================================ */
     .app {
       display: flex;
       flex-direction: column;
       height: 100vh;
-      max-width: 860px;
+      max-width: 780px;
       margin: 0 auto;
     }
 
-    /* ---- Header ---- */
+    /* ============================================================
+       HEADER
+    ============================================================ */
     header {
-      background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue-mid) 100%);
-      color: var(--white);
-      padding: 1.1rem 1.5rem;
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: .85rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
       flex-shrink: 0;
-      box-shadow: var(--shadow-md);
-    }
-    .header-icon {
-      font-size: 1.8rem;
-      line-height: 1;
-    }
-    .header-text h1 {
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: -.3px;
-    }
-    .header-text p {
-      font-size: .78rem;
-      opacity: .8;
-      margin-top: .15rem;
-    }
-    .cms-badge {
-      margin-left: auto;
-      background: rgba(255,255,255,.15);
-      border: 1px solid rgba(255,255,255,.25);
-      border-radius: 20px;
-      padding: .25rem .75rem;
-      font-size: .7rem;
-      white-space: nowrap;
-      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
     }
 
-    /* ---- Chat window ---- */
+    .logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(59,130,246,.4);
+    }
+
+    .header-text { flex: 1; min-width: 0; }
+    .header-text h1 {
+      font-size: .975rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-text p {
+      font-size: .72rem;
+      color: var(--text-secondary);
+      margin-top: .1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-badge {
+      margin-left: auto;
+      flex-shrink: 0;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: .2rem .7rem;
+      font-size: .68rem;
+      color: var(--text-secondary);
+      letter-spacing: .3px;
+    }
+
+    /* ============================================================
+       CHAT WINDOW
+    ============================================================ */
     .chat-window {
       flex: 1;
       overflow-y: auto;
-      padding: 1.25rem 1rem;
+      padding: 2rem 1.25rem 1rem;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.5rem;
       scroll-behavior: smooth;
     }
 
-    /* ---- Message bubbles ---- */
+    /* ============================================================
+       MESSAGES
+    ============================================================ */
     .message {
       display: flex;
-      gap: .65rem;
+      gap: .75rem;
       align-items: flex-start;
-      max-width: 88%;
-      animation: fadeUp .2s ease;
+      animation: fadeUp .18s ease;
     }
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(6px); }
+      from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .message.user      { align-self: flex-end; flex-direction: row-reverse; }
-    .message.assistant { align-self: flex-start; }
 
+    .message.user      { flex-direction: row-reverse; }
+    .message.assistant { flex-direction: row; }
+
+    /* Avatar */
     .avatar {
-      width: 32px; height: 32px;
-      border-radius: 50%;
+      width: 30px; height: 30px;
+      border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      font-size: .95rem;
+      font-size: .85rem;
       flex-shrink: 0;
-      margin-top: .1rem;
+      margin-top: 2px;
     }
-    .message.user      .avatar { background: var(--blue-mid);  color: var(--white); }
-    .message.assistant .avatar { background: var(--blue-light); color: var(--blue-dark); }
+    .message.user .avatar {
+      background: var(--user-bubble);
+      font-size: .75rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.5px;
+    }
+    .message.assistant .avatar {
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+      box-shadow: 0 2px 6px rgba(59,130,246,.35);
+    }
 
+    /* Bubble wrapper */
+    .bubble-wrap {
+      display: flex;
+      flex-direction: column;
+      max-width: min(72%, 580px);
+    }
+    .message.user .bubble-wrap { align-items: flex-end; }
+
+    /* Bubble */
     .bubble {
       padding: .75rem 1rem;
       border-radius: var(--radius);
-      font-size: .92rem;
-      line-height: 1.6;
-      box-shadow: var(--shadow-sm);
+      font-size: .9rem;
+      line-height: 1.65;
       word-break: break-word;
     }
     .message.user .bubble {
-      background: var(--blue-mid);
-      color: var(--white);
-      border-bottom-right-radius: 3px;
+      background: var(--user-bubble);
+      color: var(--user-text);
+      border-bottom-right-radius: 4px;
       white-space: pre-wrap;
     }
     .message.assistant .bubble {
-      background: var(--white);
-      color: var(--gray-700);
-      border: 1px solid var(--gray-100);
-      border-bottom-left-radius: 3px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
+    }
+    .bubble.error {
+      background: rgba(239,68,68,.12);
+      border-color: rgba(239,68,68,.3);
+      color: #fca5a5;
     }
 
-    /* ---- Markdown rendering inside assistant bubbles ---- */
+    /* ============================================================
+       MARKDOWN STYLES (inside assistant bubble)
+    ============================================================ */
     .bubble h1, .bubble h2, .bubble h3 {
-      color: var(--blue-dark);
-      margin: .75rem 0 .3rem;
+      color: var(--text-primary);
+      font-weight: 600;
+      margin: .9rem 0 .35rem;
       line-height: 1.3;
     }
-    .bubble h1 { font-size: 1.1rem; }
-    .bubble h2 { font-size: 1rem; }
-    .bubble h3 { font-size: .95rem; }
-    .bubble p  { margin: .4rem 0; }
+    .bubble h1 { font-size: 1.05rem; }
+    .bubble h2 { font-size: .975rem; }
+    .bubble h3 { font-size: .925rem; }
+    .bubble p  { margin: .45rem 0; color: var(--text-primary); }
     .bubble p:first-child { margin-top: 0; }
     .bubble p:last-child  { margin-bottom: 0; }
-    .bubble strong { font-weight: 700; color: var(--blue-dark); }
-    .bubble em     { font-style: italic; }
+    .bubble strong { font-weight: 600; color: #e2e8f0; }
+    .bubble em     { font-style: italic; color: var(--text-secondary); }
     .bubble ul, .bubble ol {
-      margin: .4rem 0 .4rem 1.25rem;
-      padding: 0;
+      margin: .4rem 0 .4rem 1.2rem;
+      color: var(--text-primary);
     }
-    .bubble li { margin: .2rem 0; }
+    .bubble li { margin: .25rem 0; }
     .bubble code {
-      background: var(--gray-100);
-      border-radius: 4px;
-      padding: .1rem .35rem;
-      font-size: .85em;
-      font-family: 'Courier New', monospace;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: .1rem .4rem;
+      font-size: .82em;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      color: #93c5fd;
     }
     .bubble pre {
-      background: var(--gray-50);
-      border: 1px solid var(--gray-100);
-      border-radius: var(--radius);
-      padding: .75rem 1rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: .85rem 1rem;
       overflow-x: auto;
-      margin: .5rem 0;
+      margin: .6rem 0;
     }
     .bubble pre code {
       background: none;
+      border: none;
       padding: 0;
-      font-size: .85rem;
+      font-size: .83rem;
     }
     .bubble hr {
       border: none;
-      border-top: 1px solid var(--gray-100);
-      margin: .6rem 0;
+      border-top: 1px solid var(--border);
+      margin: .7rem 0;
     }
     .bubble blockquote {
-      border-left: 3px solid var(--blue-light);
-      padding-left: .75rem;
-      color: var(--gray-400);
-      margin: .4rem 0;
+      border-left: 3px solid var(--accent);
+      padding-left: .85rem;
+      color: var(--text-secondary);
+      margin: .5rem 0;
     }
     .bubble table {
       border-collapse: collapse;
       width: 100%;
-      margin: .5rem 0;
-      font-size: .85rem;
+      margin: .6rem 0;
+      font-size: .84rem;
     }
     .bubble th, .bubble td {
-      border: 1px solid var(--gray-100);
-      padding: .35rem .65rem;
+      border: 1px solid var(--border);
+      padding: .4rem .7rem;
       text-align: left;
     }
     .bubble th {
-      background: var(--blue-light);
-      color: var(--blue-dark);
-      font-weight: 700;
+      background: var(--surface-3);
+      color: #93c5fd;
+      font-weight: 600;
     }
-    .bubble tr:nth-child(even) td { background: var(--gray-50); }
+    .bubble tr:nth-child(even) td { background: rgba(255,255,255,.02); }
 
-    /* ---- See more/less toggle ---- */
-    .bubble-content {
-      overflow: hidden;
-      transition: max-height .3s ease;
-    }
-    .bubble-content.collapsed { max-height: 220px; position: relative; }
+    /* ============================================================
+       SEE MORE / LESS
+    ============================================================ */
+    .bubble-content { overflow: hidden; }
+    .bubble-content.collapsed { max-height: 200px; position: relative; }
     .bubble-content.collapsed::after {
       content: '';
       position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 48px;
-      background: linear-gradient(transparent, var(--white));
+      bottom: 0; left: 0; right: 0; height: 56px;
+      background: linear-gradient(transparent, var(--surface));
       pointer-events: none;
     }
     .see-more-btn {
-      display: block;
-      margin-top: .4rem;
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      margin-top: .5rem;
       background: none;
-      border: none;
-      color: var(--blue-mid);
-      font-size: .82rem;
-      cursor: pointer;
-      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--accent);
+      font-size: .78rem;
       font-family: var(--font);
+      padding: .2rem .65rem;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
     }
-    .see-more-btn:hover { text-decoration: underline; }
+    .see-more-btn:hover {
+      background: var(--surface-3);
+      border-color: var(--accent);
+    }
 
-    /* ---- Typing indicator ---- */
+    /* ============================================================
+       TYPING INDICATOR
+    ============================================================ */
     .typing .bubble {
       display: flex;
-      gap: 4px;
+      gap: 5px;
       align-items: center;
-      padding: .75rem .9rem;
+      padding: .85rem 1rem;
     }
     .dot {
       width: 7px; height: 7px;
-      background: var(--blue-accent);
+      background: var(--text-muted);
       border-radius: 50%;
       animation: bounce .9s infinite;
     }
@@ -290,108 +376,117 @@
     .dot:nth-child(3) { animation-delay: .3s; }
     @keyframes bounce {
       0%, 60%, 100% { transform: translateY(0); }
-      30%            { transform: translateY(-6px); }
+      30%            { transform: translateY(-5px); }
     }
 
-    /* ---- Error bubble ---- */
-    .bubble.error {
-      background: #fde8e8;
-      color: var(--red);
-      border-color: #f5c6c6;
-    }
-
-    /* ---- Suggestions ---- */
+    /* ============================================================
+       SUGGESTIONS
+    ============================================================ */
     .suggestions {
-      padding: 0 1rem .5rem;
+      padding: .5rem 1.25rem .75rem;
       display: flex;
       flex-wrap: wrap;
-      gap: .5rem;
+      gap: .45rem;
       flex-shrink: 0;
     }
-    .suggestions p {
+    .suggestions-label {
       width: 100%;
-      font-size: .75rem;
-      color: var(--gray-400);
+      font-size: .7rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .6px;
       margin-bottom: .1rem;
     }
     .suggestion-btn {
-      background: var(--white);
-      border: 1.5px solid var(--blue-light);
-      color: var(--blue-mid);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
       border-radius: 20px;
-      padding: .3rem .85rem;
-      font-size: .8rem;
+      padding: .35rem .85rem;
+      font-size: .78rem;
+      font-family: var(--font);
       cursor: pointer;
-      transition: background .15s, border-color .15s;
+      transition: background .15s, border-color .15s, color .15s;
+      white-space: nowrap;
     }
     .suggestion-btn:hover {
-      background: var(--blue-light);
-      border-color: var(--blue-mid);
+      background: var(--surface-3);
+      border-color: var(--accent);
+      color: var(--text-primary);
     }
 
-    /* ---- Input bar ---- */
-    .input-bar {
-      display: flex;
-      gap: .6rem;
-      padding: .85rem 1rem;
-      border-top: 1px solid var(--gray-100);
-      background: var(--white);
+    /* ============================================================
+       INPUT BAR
+    ============================================================ */
+    .input-area {
+      padding: .75rem 1.25rem 1rem;
       flex-shrink: 0;
+      background: var(--bg);
+    }
+    .input-box {
+      display: flex;
+      align-items: flex-end;
+      gap: .6rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: .6rem .6rem .6rem .9rem;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .input-box:focus-within {
+      border-color: var(--border-focus);
+      box-shadow: var(--shadow-glow);
     }
     #user-input {
       flex: 1;
-      border: 1.5px solid var(--gray-300);
-      border-radius: var(--radius);
-      padding: .65rem .95rem;
-      font-size: .95rem;
-      font-family: var(--font);
-      outline: none;
-      resize: none;
-      line-height: 1.5;
-      max-height: 120px;
-      overflow-y: auto;
-      transition: border-color .15s, box-shadow .15s;
-    }
-    #user-input:focus {
-      border-color: var(--blue-mid);
-      box-shadow: 0 0 0 3px rgba(0,87,184,.1);
-    }
-    #send-btn {
-      background: var(--blue-mid);
-      color: var(--white);
+      background: none;
       border: none;
-      border-radius: var(--radius);
-      padding: .65rem 1.1rem;
-      font-size: 1.1rem;
+      outline: none;
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: .9rem;
+      line-height: 1.55;
+      resize: none;
+      max-height: 140px;
+      overflow-y: auto;
+      padding: .2rem 0;
+    }
+    #user-input::placeholder { color: var(--text-muted); }
+    #user-input:disabled { opacity: .5; }
+
+    #send-btn {
+      width: 34px; height: 34px;
+      background: var(--accent);
+      border: none;
+      border-radius: 9px;
+      color: #fff;
+      font-size: 1rem;
       cursor: pointer;
-      transition: background .15s, transform .1s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #send-btn:hover   { background: var(--blue-dark); }
-    #send-btn:active  { transform: scale(.95); }
-    #send-btn:disabled {
-      background: var(--gray-300);
-      cursor: not-allowed;
-    }
-
-    /* ---- Footer ---- */
-    footer {
-      text-align: center;
-      font-size: .72rem;
-      color: var(--gray-400);
-      padding: .4rem;
-      background: var(--white);
-      border-top: 1px solid var(--gray-100);
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
+      transition: background .15s, transform .1s, opacity .15s;
+    }
+    #send-btn:hover   { background: var(--accent-hover); }
+    #send-btn:active  { transform: scale(.93); }
+    #send-btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+    .input-hint {
+      text-align: center;
+      font-size: .67rem;
+      color: var(--text-muted);
+      margin-top: .45rem;
     }
 
-    /* ---- Responsive ---- */
+    /* ============================================================
+       RESPONSIVE
+    ============================================================ */
     @media (max-width: 600px) {
-      .cms-badge { display: none; }
+      .header-badge { display: none; }
       .header-text p { display: none; }
-      .message { max-width: 96%; }
+      .chat-window { padding: 1.25rem .85rem .75rem; }
+      .input-area  { padding: .5rem .85rem .75rem; }
+      .suggestions { padding: .35rem .85rem .5rem; }
     }
   </style>
 </head>
@@ -400,39 +495,40 @@
 
   <!-- Header -->
   <header>
-    <div class="header-icon" aria-hidden="true">🏥</div>
+    <div class="logo" aria-hidden="true">🏥</div>
     <div class="header-text">
-      <h1 id="page-title">Hospital Finder</h1>
+      <h1 id="page-title">Hospital Cost Comparer</h1>
       <p id="page-subtitle"></p>
     </div>
-    <span class="cms-badge">CMS Hospital Provider and Procedure Cost Data</span>
+    <span class="header-badge" id="header-badge">CMS Medicare Data</span>
   </header>
 
   <!-- Chat messages -->
   <div class="chat-window" id="chat-window" role="log" aria-live="polite" aria-label="Chat conversation"></div>
 
-  <!-- Suggested questions (hidden after first user message) -->
+  <!-- Suggestions -->
   <div class="suggestions" id="suggestions">
-    <p>Try asking:</p>
-    <!-- populated by JS from UI_CONFIG.SUGGESTIONS -->
+    <div class="suggestions-label">Try asking</div>
   </div>
 
   <!-- Input -->
-  <div class="input-bar">
-    <textarea
-      id="user-input"
-      rows="1"
-      aria-label="Your message"
-      autocomplete="off"
-      spellcheck="true"
-    ></textarea>
-    <button id="send-btn" aria-label="Send message" title="Send (Enter)">&#9658;</button>
+  <div class="input-area">
+    <div class="input-box">
+      <textarea
+        id="user-input"
+        rows="1"
+        aria-label="Your message"
+        autocomplete="off"
+        spellcheck="true"
+      ></textarea>
+      <button id="send-btn" aria-label="Send message" title="Send (Enter)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M14 8L2 2l2.5 6L2 14l12-6z" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+    <p class="input-hint">Press Enter to send &nbsp;·&nbsp; Shift+Enter for new line &nbsp;·&nbsp; AI responses may contain errors — not medical advice</p>
   </div>
-
-  <footer>
-    Data: CMS Provider Data Catalog —  Hospitals by Provider and Service &nbsp;|&nbsp;
-    AI responses may contain errors. Do NOT use this chatbot to seek medical advice.
-  </footer>
 
 </div>
 
@@ -440,33 +536,28 @@
   // ============================================================
   // STATE
   // ============================================================
-  const history = [];   // [{role, content}, ...] — sent to /chat each turn
-  let   waiting = false;
+  const history = [];
+  let waiting = false;
 
   // ============================================================
   // INIT
   // ============================================================
   document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("page-title").textContent   = UI_CONFIG.PAGE_TITLE;
+    document.getElementById("page-title").textContent    = UI_CONFIG.PAGE_TITLE;
     document.getElementById("page-subtitle").textContent = UI_CONFIG.SUBTITLE;
-    document.getElementById("user-input").placeholder   = UI_CONFIG.PLACEHOLDER;
+    document.getElementById("user-input").placeholder    = UI_CONFIG.PLACEHOLDER;
     document.title = UI_CONFIG.PAGE_TITLE;
 
     buildSuggestions();
     appendMessage("assistant", UI_CONFIG.WELCOME_MSG);
 
-    // Send on Enter (Shift+Enter = newline)
     document.getElementById("user-input").addEventListener("keydown", e => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     });
 
-    // Auto-resize textarea
     document.getElementById("user-input").addEventListener("input", function () {
       this.style.height = "auto";
-      this.style.height = Math.min(this.scrollHeight, 120) + "px";
+      this.style.height = Math.min(this.scrollHeight, 140) + "px";
     });
 
     document.getElementById("send-btn").addEventListener("click", sendMessage);
@@ -498,7 +589,6 @@
   // ============================================================
   async function sendMessage() {
     if (waiting) return;
-
     const input = document.getElementById("user-input");
     const text  = input.value.trim();
     if (!text) return;
@@ -507,11 +597,9 @@
     input.value = "";
     input.style.height = "auto";
 
-    // Render user bubble
     appendMessage("user", text);
     history.push({ role: "user", content: text });
 
-    // Show typing indicator
     const typingId = showTyping();
     setWaiting(true);
 
@@ -521,7 +609,7 @@
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
           message: text,
-          history: history.slice(0, -1),   // exclude the just-added user turn
+          history: history.slice(0, -1),
         }),
       });
 
@@ -529,13 +617,11 @@
       removeTyping(typingId);
 
       if (!res.ok || data.error) {
-        const errMsg = data.error || `Server error ${res.status}`;
-        appendMessage("assistant", `⚠️ ${errMsg}`, true);
+        appendMessage("assistant", `⚠️ ${data.error || `Server error ${res.status}`}`, true);
       } else {
         appendMessage("assistant", data.reply);
         history.push({ role: "assistant", content: data.reply });
       }
-
     } catch (err) {
       removeTyping(typingId);
       appendMessage("assistant", `⚠️ Could not reach the server: ${err.message}`, true);
@@ -547,46 +633,29 @@
 
   // ============================================================
   // MARKDOWN RENDERER
-  // Converts a subset of markdown to safe HTML.
-  // Handles: headings, bold, italic, code, lists, tables, hr,
-  // blockquotes, and paragraphs.
   // ============================================================
   function renderMarkdown(text) {
-    // Escape raw HTML to prevent XSS, then selectively un-escape
-    // markdown constructs we want to render.
     let t = text
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
 
-    // Fenced code blocks  ```lang\n...\n```
     t = t.replace(/```[\w]*\n?([\s\S]*?)```/g, (_, code) =>
       `<pre><code>${code.trim()}</code></pre>`);
 
-    // Headings
     t = t.replace(/^### (.+)$/gm, "<h3>$1</h3>");
     t = t.replace(/^## (.+)$/gm,  "<h2>$1</h2>");
     t = t.replace(/^# (.+)$/gm,   "<h1>$1</h1>");
-
-    // Horizontal rule
     t = t.replace(/^[-*_]{3,}$/gm, "<hr>");
-
-    // Blockquote
     t = t.replace(/^&gt; (.+)$/gm, "<blockquote>$1</blockquote>");
 
-    // Bold + italic
     t = t.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
-    // Bold
     t = t.replace(/\*\*(.+?)\*\*/g,     "<strong>$1</strong>");
     t = t.replace(/__(.+?)__/g,          "<strong>$1</strong>");
-    // Italic
     t = t.replace(/\*(.+?)\*/g,          "<em>$1</em>");
     t = t.replace(/_(.+?)_/g,            "<em>$1</em>");
+    t = t.replace(/`([^`]+)`/g,          "<code>$1</code>");
 
-    // Inline code
-    t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
-
-    // Tables  (| col | col |)
     t = t.replace(/(?:^|\n)((?:\|.+\|\n?)+)/g, (_, block) => {
       const rows = block.trim().split("\n").filter(r => r.trim());
       if (rows.length < 2) return _;
@@ -601,28 +670,22 @@
       return `<table><thead>${header}</thead><tbody>${body}</tbody></table>`;
     });
 
-    // Unordered lists (lines starting with - or *)
     t = t.replace(/((?:^[*\-] .+\n?)+)/gm, block => {
       const items = block.trim().split("\n")
-        .map(l => `<li>${l.replace(/^[*\-] /, "").trim()}</li>`)
-        .join("");
+        .map(l => `<li>${l.replace(/^[*\-] /, "").trim()}</li>`).join("");
       return `<ul>${items}</ul>`;
     });
 
-    // Ordered lists
     t = t.replace(/((?:^\d+\. .+\n?)+)/gm, block => {
       const items = block.trim().split("\n")
-        .map(l => `<li>${l.replace(/^\d+\. /, "").trim()}</li>`)
-        .join("");
+        .map(l => `<li>${l.replace(/^\d+\. /, "").trim()}</li>`).join("");
       return `<ol>${items}</ol>`;
     });
 
-    // Paragraphs — wrap double-newline-separated blocks not already wrapped
     t = t.split(/\n{2,}/).map(block => {
       const b = block.trim();
       if (!b) return "";
       if (/^<(h[1-3]|ul|ol|pre|table|blockquote|hr)/.test(b)) return b;
-      // Single newlines within a paragraph → <br>
       return `<p>${b.replace(/\n/g, "<br>")}</p>`;
     }).join("\n");
 
@@ -632,59 +695,67 @@
   // ============================================================
   // UI HELPERS
   // ============================================================
-
-  // How many characters before the "See more" toggle appears
   const SEE_MORE_THRESHOLD = 600;
 
   function appendMessage(role, text, isError = false) {
-    const window_ = document.getElementById("chat-window");
+    const win = document.getElementById("chat-window");
 
     const msg = document.createElement("div");
     msg.className = `message ${role}`;
 
+    // Avatar
     const avatar = document.createElement("div");
     avatar.className = "avatar";
     avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = role === "user" ? "👤" : "🏥";
+    avatar.textContent = role === "user" ? "U" : "🏥";
 
+    // Bubble wrapper
+    const wrap = document.createElement("div");
+    wrap.className = "bubble-wrap";
+
+    // Bubble
     const bubble = document.createElement("div");
     bubble.className = "bubble" + (isError ? " error" : "");
 
     if (role === "user" || isError) {
-      // User messages and errors: plain text (XSS-safe)
       bubble.textContent = text;
     } else {
-      // Assistant messages: render markdown
       const content = document.createElement("div");
       content.className = "bubble-content";
       content.innerHTML = renderMarkdown(text);
       bubble.appendChild(content);
 
-      // Add "See more" toggle if response is long
       if (text.length > SEE_MORE_THRESHOLD) {
         content.classList.add("collapsed");
         const btn = document.createElement("button");
         btn.className = "see-more-btn";
-        btn.textContent = "▾ See more";
+        btn.innerHTML = `<span>▾</span> See more`;
         btn.addEventListener("click", () => {
           const collapsed = content.classList.toggle("collapsed");
-          btn.textContent = collapsed ? "▾ See more" : "▴ See less";
+          btn.innerHTML = collapsed ? `<span>▾</span> See more` : `<span>▴</span> See less`;
           if (!collapsed) scrollToBottom();
         });
-        bubble.appendChild(btn);
+        wrap.appendChild(bubble);
+        wrap.appendChild(btn);
+        msg.appendChild(avatar);
+        msg.appendChild(wrap);
+        win.appendChild(msg);
+        scrollToBottom();
+        return msg;
       }
     }
 
+    wrap.appendChild(bubble);
     msg.appendChild(avatar);
-    msg.appendChild(bubble);
-    window_.appendChild(msg);
+    msg.appendChild(wrap);
+    win.appendChild(msg);
     scrollToBottom();
     return msg;
   }
 
   function showTyping() {
-    const id = "typing-" + Date.now();
-    const window_ = document.getElementById("chat-window");
+    const id  = "typing-" + Date.now();
+    const win = document.getElementById("chat-window");
 
     const msg = document.createElement("div");
     msg.className = "message assistant typing";
@@ -695,6 +766,9 @@
     avatar.setAttribute("aria-hidden", "true");
     avatar.textContent = "🏥";
 
+    const wrap = document.createElement("div");
+    wrap.className = "bubble-wrap";
+
     const bubble = document.createElement("div");
     bubble.className = "bubble";
     bubble.setAttribute("aria-label", "Assistant is typing");
@@ -704,9 +778,10 @@
       bubble.appendChild(dot);
     });
 
+    wrap.appendChild(bubble);
     msg.appendChild(avatar);
-    msg.appendChild(bubble);
-    window_.appendChild(msg);
+    msg.appendChild(wrap);
+    win.appendChild(msg);
     scrollToBottom();
     return id;
   }
@@ -718,8 +793,8 @@
 
   function setWaiting(state) {
     waiting = state;
-    document.getElementById("send-btn").disabled = state;
-    document.getElementById("user-input").disabled = state;
+    document.getElementById("send-btn").disabled    = state;
+    document.getElementById("user-input").disabled  = state;
   }
 
   // ============================================================
