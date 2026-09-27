@@ -3,202 +3,368 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Find your Gong cha drink match with a quick, friendly chat.">
-  <title>Gong cha Drink Match</title>
+  <meta name="description" content="Gong Chat helps you find your next favorite bubble tea drink.">
+  <title>Gong Chat | Find Your Drink</title>
   <style>
     :root {
-      --red: #d71920;
-      --red-dark: #a80f16;
-      --navy: #071c35;
-      --ink: #17263b;
-      --cream: #fffaf3;
-      --pink: #f8e6e2;
-      --gold: #f2b544;
-      --line: #eaded5;
-      --white: #ffffff;
-      --shadow: 0 20px 55px rgba(7, 28, 53, .13);
+      --milk-tea: #d6ad82;
+      --milk-tea-light: #e8c79e;
+      --milk-tea-dark: #a66d49;
+      --boba: #35201c;
+      --boba-soft: #684037;
+      --cream: #fff7e9;
+      --red: #d83232;
+      --green: #748c54;
+      --ink: #2b1a18;
     }
 
     * { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--milk-tea); }
     body {
+      min-height: 100vh;
       margin: 0;
-      min-width: 320px;
+      overflow-x: hidden;
       color: var(--ink);
-      background: var(--cream);
+      background:
+        radial-gradient(circle at 12% 16%, rgba(255, 247, 233, .5) 0 6px, transparent 7px),
+        radial-gradient(circle at 84% 11%, rgba(255, 247, 233, .35) 0 4px, transparent 5px),
+        radial-gradient(circle at 72% 80%, rgba(125, 74, 46, .1) 0 8px, transparent 9px),
+        linear-gradient(135deg, var(--milk-tea-light), var(--milk-tea) 46%, #c99469);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    .topbar {
-      height: 74px;
+    body::before,
+    body::after {
+      position: fixed;
+      z-index: 0;
+      width: 260px;
+      height: 260px;
+      border: 1px solid rgba(255, 247, 233, .28);
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+    }
+    body::before { top: -125px; right: -65px; }
+    body::after { bottom: -150px; left: -80px; width: 310px; height: 310px; }
+
+    .home {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      min-height: 100vh;
+      place-items: center;
+      padding: 54px 28px 42px;
+      isolation: isolate;
+    }
+
+    .home-inner {
+      position: relative;
+      width: min(1120px, 100%);
+      min-height: min(720px, calc(100vh - 96px));
+      display: grid;
+      place-items: center;
+      padding: 48px 24px 62px;
+      border: 2px solid rgba(255, 247, 233, .45);
+      border-radius: 44px;
+      background: rgba(239, 207, 165, .22);
+      box-shadow: 0 28px 60px rgba(91, 53, 33, .16), inset 0 1px rgba(255, 247, 233, .28);
+    }
+
+    .brand {
+      position: absolute;
+      top: 25px;
+      left: 30px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 0 clamp(20px, 6vw, 88px);
-      color: var(--white);
-      background: var(--red);
+      gap: 9px;
+      color: var(--boba);
+      font-size: 13px;
+      font-weight: 850;
+      letter-spacing: .16em;
+      text-transform: uppercase;
     }
-
-    .brand { display: flex; align-items: center; gap: 12px; }
     .brand-mark {
       display: grid;
-      width: 40px;
-      height: 40px;
+      width: 29px;
+      height: 29px;
       place-items: center;
-      border: 2px solid var(--white);
+      border: 2px solid var(--boba);
       border-radius: 50%;
-      font-size: 20px;
-      font-weight: 800;
-    }
-    .brand-name { font-size: 21px; font-weight: 800; letter-spacing: .01em; }
-    .brand-note { font-size: 12px; opacity: .85; }
-
-    main {
-      width: min(1020px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 52px 0 60px;
+      font-size: 16px;
+      letter-spacing: 0;
+      text-transform: lowercase;
     }
 
-    .hero { display: grid; grid-template-columns: 1fr 1.05fr; gap: 42px; align-items: center; margin-bottom: 34px; }
-    .eyebrow { color: var(--red); font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
-    h1 { max-width: 480px; margin: 10px 0 15px; color: var(--navy); font-family: Georgia, "Times New Roman", serif; font-size: clamp(40px, 6vw, 68px); line-height: .98; letter-spacing: -.045em; }
-    .hero p { max-width: 470px; margin: 0; color: #586575; font-size: 17px; line-height: 1.65; }
-    .hero-art { position: relative; min-height: 250px; display: grid; place-items: center; }
-    .sun { position: absolute; width: 210px; height: 210px; border-radius: 50%; background: var(--pink); }
-    .cup { position: relative; z-index: 1; width: 108px; height: 155px; border: 6px solid var(--navy); border-top: 0; border-radius: 7px 7px 27px 27px; background: linear-gradient(#c99a60 0 64%, #ecd1a3 64%); box-shadow: 0 17px 0 -10px var(--navy); }
-    .cup::before { content: ""; position: absolute; top: -22px; left: -14px; width: 124px; height: 24px; border: 6px solid var(--navy); border-radius: 50%; background: #f5e6c9; }
-    .cup::after { content: "••••"; position: absolute; bottom: 12px; left: 24px; color: var(--navy); font-size: 19px; letter-spacing: 8px; }
-    .straw { position: absolute; z-index: 0; width: 7px; height: 105px; margin: -205px 0 0 50px; transform: rotate(17deg); border-radius: 5px; background: var(--red); }
+    .hero-copy {
+      position: relative;
+      z-index: 4;
+      width: min(650px, 100%);
+      margin-top: 10px;
+      text-align: center;
+    }
+    .kicker {
+      margin: 0 0 10px;
+      color: var(--boba-soft);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+    h1 {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: .04em;
+      margin: 0;
+      color: var(--boba);
+      font-family: "Trebuchet MS", "Arial Rounded MT Bold", ui-rounded, sans-serif;
+      font-size: clamp(60px, 11vw, 126px);
+      font-weight: 950;
+      letter-spacing: -.085em;
+      line-height: .88;
+      text-shadow: 0 6px 0 #241512, 0 10px 18px rgba(82, 42, 27, .25);
+      user-select: none;
+    }
+    .letter {
+      display: inline-block;
+      position: relative;
+      transform: translate3d(0, 0, 0) rotate(var(--rotation));
+      transition: transform .35s cubic-bezier(.2, .8, .2, 1);
+      will-change: transform;
+    }
+    .letter::before {
+      position: absolute;
+      top: 13%;
+      left: 18%;
+      width: 15%;
+      height: 8%;
+      border-radius: 50%;
+      background: rgba(255, 247, 233, .68);
+      content: "";
+      filter: blur(.4px);
+      transform: rotate(-24deg);
+    }
+    .letter:nth-child(2n)::before { top: 20%; left: 24%; width: 10%; height: 6%; }
+    .letter.space { width: .2em; }
+    .subtitle {
+      max-width: 470px;
+      margin: 25px auto 25px;
+      color: #583b2c;
+      font-size: clamp(15px, 2vw, 18px);
+      line-height: 1.55;
+    }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      border: 0;
+      border-radius: 999px;
+      padding: 15px 24px 15px 27px;
+      color: var(--cream);
+      background: var(--red);
+      box-shadow: 0 6px 0 #9e2828, 0 13px 20px rgba(116, 45, 35, .2);
+      font: inherit;
+      font-weight: 850;
+      text-decoration: none;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .cta::after { content: "→"; font-size: 22px; line-height: 0; }
+    .cta:hover, .cta:focus-visible { background: #bf262b; outline: none; transform: translateY(-3px); box-shadow: 0 9px 0 #9e2828, 0 15px 22px rgba(116, 45, 35, .2); }
+    .cta:active { transform: translateY(2px); box-shadow: 0 3px 0 #9e2828; }
 
-    .chat-card { overflow: hidden; border: 1px solid var(--line); border-radius: 26px; background: var(--white); box-shadow: var(--shadow); }
-    .chat-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 25px; color: var(--white); background: var(--navy); }
-    .chat-title { display: flex; align-items: center; gap: 12px; font-weight: 750; }
-    .bot-dot { width: 11px; height: 11px; border-radius: 50%; background: #67d391; box-shadow: 0 0 0 5px rgba(103, 211, 145, .14); }
-    .status { color: #c6d3e4; font-size: 12px; }
-    .messages { min-height: 320px; max-height: 460px; overflow-y: auto; padding: 24px; background: #fffdfb; }
-    .message { display: flex; margin: 0 0 17px; animation: rise .2s ease-out; }
-    .message.user { justify-content: flex-end; }
-    .bubble { max-width: min(78%, 650px); padding: 14px 17px; border-radius: 18px 18px 18px 4px; color: var(--ink); background: var(--pink); line-height: 1.5; white-space: pre-wrap; }
-    .user .bubble { border-radius: 18px 18px 4px 18px; color: var(--white); background: var(--red); }
-    .typing { display: none; align-items: center; gap: 5px; width: max-content; margin: 0 0 17px; padding: 13px 16px; border-radius: 18px 18px 18px 4px; background: var(--pink); }
-    .typing.visible { display: flex; }
-    .typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--red); animation: bounce 1s infinite; }
-    .typing span:nth-child(2) { animation-delay: .15s; }
-    .typing span:nth-child(3) { animation-delay: .3s; }
-    .quick-replies { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 24px 17px; background: #fffdfb; }
-    .quick-reply { cursor: pointer; border: 1px solid #e1b4ad; border-radius: 999px; padding: 9px 13px; color: var(--red-dark); background: var(--white); font: inherit; font-size: 13px; transition: .15s ease; }
-    .quick-reply:hover, .quick-reply:focus-visible { border-color: var(--red); color: var(--white); background: var(--red); outline: none; }
-    .composer { display: flex; gap: 10px; padding: 17px; border-top: 1px solid var(--line); background: var(--white); }
-    .composer input { min-width: 0; flex: 1; border: 1px solid #d8dce2; border-radius: 13px; padding: 14px 15px; color: var(--ink); background: #fbfcfe; font: inherit; outline: none; }
-    .composer input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(215, 25, 32, .12); }
-    .send { cursor: pointer; border: 0; border-radius: 13px; padding: 0 21px; color: var(--white); background: var(--red); font: inherit; font-weight: 750; }
-    .send:hover, .send:focus-visible { background: var(--red-dark); }
-    .send:disabled { cursor: wait; opacity: .6; }
-    .fine-print { margin: 15px 4px 0; color: #7b8490; font-size: 12px; line-height: 1.5; text-align: center; }
-    .fine-print a { color: var(--red-dark); }
+    .drinks-stage {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .drink {
+      position: absolute;
+      width: 150px;
+      height: 245px;
+      display: grid;
+      place-items: end center;
+      pointer-events: auto;
+      transform: rotate(var(--tilt));
+      transition: filter .25s ease;
+    }
+    .drink:hover, .drink:focus-visible { z-index: 5; filter: drop-shadow(0 15px 10px rgba(82, 42, 27, .2)); animation: drink-shake .6s ease-in-out infinite; outline: none; }
+    .drink-a { --tilt: -10deg; top: 25%; left: 4%; }
+    .drink-b { --tilt: 8deg; right: 4%; bottom: 15%; }
+    .drink-c { --tilt: -5deg; right: 13%; top: 8%; transform: scale(.82) rotate(var(--tilt)); }
+    .drink-shadow { position: absolute; bottom: 4px; width: 105px; height: 18px; border-radius: 50%; background: rgba(85, 44, 29, .23); filter: blur(4px); }
+    .straw { position: absolute; z-index: 0; top: 0; width: 10px; height: 111px; border-radius: 9px; background: var(--boba); transform: rotate(7deg); transform-origin: bottom center; }
+    .drink-b .straw { background: #7d4932; transform: rotate(-7deg); }
+    .drink-c .straw { background: var(--green); }
+    .cup {
+      position: relative;
+      z-index: 1;
+      width: 116px;
+      height: 160px;
+      overflow: visible;
+      border: 3px solid rgba(75, 42, 31, .83);
+      border-top: 0;
+      border-radius: 8px 8px 30px 30px;
+      background: var(--drink-color);
+      box-shadow: inset 10px 0 rgba(255, 255, 255, .22), inset -8px 0 rgba(109, 51, 33, .12);
+    }
+    .cup::before {
+      position: absolute;
+      z-index: 2;
+      top: -14px;
+      left: -8px;
+      width: 126px;
+      height: 24px;
+      border: 3px solid rgba(75, 42, 31, .85);
+      border-radius: 50%;
+      background: var(--lid-color);
+      box-shadow: inset 0 5px rgba(255, 255, 255, .28);
+      content: "";
+    }
+    .cup::after {
+      position: absolute;
+      right: 11px;
+      bottom: 13px;
+      left: 11px;
+      height: 43px;
+      border-radius: 0 0 20px 20px;
+      background: radial-gradient(circle at 13px 11px, var(--boba) 0 6px, transparent 7px), radial-gradient(circle at 39px 25px, var(--boba) 0 6px, transparent 7px), radial-gradient(circle at 67px 10px, var(--boba) 0 6px, transparent 7px), radial-gradient(circle at 91px 29px, var(--boba) 0 6px, transparent 7px), radial-gradient(circle at 51px 38px, var(--boba) 0 5px, transparent 6px);
+      content: "";
+    }
+    .cream {
+      position: absolute;
+      z-index: 3;
+      top: -26px;
+      left: 7px;
+      width: 100px;
+      height: 36px;
+      border-radius: 46% 54% 38% 35%;
+      background: var(--cream-color);
+      box-shadow: 7px 6px rgba(135, 74, 51, .12), inset 7px 5px rgba(255, 255, 255, .45);
+    }
+    .cream::after { position: absolute; right: 12px; bottom: -4px; width: 27px; height: 12px; border-radius: 50%; background: var(--cream-color); content: ""; }
+    .cup-label { position: absolute; z-index: 3; top: 48px; left: 22px; width: 68px; padding: 7px 3px; border: 2px solid rgba(75, 42, 31, .28); border-radius: 9px; color: rgba(75, 42, 31, .7); font-size: 9px; font-weight: 900; letter-spacing: .1em; text-align: center; text-transform: uppercase; }
+    .drink-a { --drink-color: #d99d72; --lid-color: #f4d7b1; --cream-color: #fff1d3; }
+    .drink-b { --drink-color: #e79b9b; --lid-color: #ffd5d2; --cream-color: #fff2df; }
+    .drink-c { --drink-color: #9fb37b; --lid-color: #d5e3b8; --cream-color: #f8f0d8; }
 
-    @keyframes rise { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
-    @media (max-width: 760px) { .hero { grid-template-columns: 1fr; gap: 8px; } .hero-art { min-height: 180px; } .sun { width: 150px; height: 150px; } .topbar { height: 65px; } main { padding-top: 30px; } .status { display: none; } }
-    @media (max-width: 450px) { .composer { padding: 12px; } .send { padding: 0 15px; } .messages { padding: 18px; } .quick-replies { padding: 0 18px 14px; } }
+    .hint {
+      position: absolute;
+      right: 29px;
+      bottom: 25px;
+      margin: 0;
+      color: rgba(67, 40, 29, .7);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .bubble {
+      position: absolute;
+      z-index: -1;
+      width: var(--size);
+      height: var(--size);
+      border: 2px solid rgba(255, 247, 233, .28);
+      border-radius: 50%;
+      animation: float var(--speed) ease-in-out infinite alternate;
+    }
+    .bubble-one { top: 15%; left: 32%; --size: 18px; --speed: 3s; }
+    .bubble-two { top: 33%; right: 26%; --size: 11px; --speed: 2.4s; }
+    .bubble-three { bottom: 24%; left: 21%; --size: 26px; --speed: 3.6s; }
+
+    @keyframes drink-shake {
+      0%, 100% { transform: translateY(0) rotate(calc(var(--tilt) - 2deg)); }
+      25% { transform: translateY(-3px) rotate(calc(var(--tilt) + 4deg)); }
+      50% { transform: translateY(1px) rotate(calc(var(--tilt) - 4deg)); }
+      75% { transform: translateY(-2px) rotate(calc(var(--tilt) + 2deg)); }
+    }
+    @keyframes float { from { transform: translateY(-5px); } to { transform: translateY(8px); } }
+
+    @media (max-width: 850px) {
+      .home { padding: 20px 14px; }
+      .home-inner { min-height: calc(100vh - 40px); padding-top: 135px; padding-bottom: 150px; overflow: hidden; }
+      .drink-a { top: 9%; left: -21px; transform: scale(.67) rotate(var(--tilt)); }
+      .drink-b { right: -28px; bottom: 10%; transform: scale(.7) rotate(var(--tilt)); }
+      .drink-c { top: auto; right: 27%; bottom: 4%; transform: scale(.57) rotate(var(--tilt)); }
+      .hint { right: 0; bottom: 18px; left: 0; text-align: center; }
+    }
+    @media (max-width: 520px) {
+      .home-inner { border-radius: 28px; padding-right: 17px; padding-left: 17px; }
+      .brand { top: 19px; left: 20px; }
+      h1 { font-size: clamp(52px, 17vw, 82px); }
+      .subtitle { margin-top: 21px; font-size: 14px; }
+      .drink-a { top: 12%; left: -48px; }
+      .drink-b { right: -49px; bottom: 14%; }
+      .drink-c { right: 20%; bottom: 3%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
   </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand"><div class="brand-mark">g</div><div><div class="brand-name">gong cha</div><div class="brand-note">drink match</div></div></div>
-    <div class="brand-note">crafted for your next sip</div>
-  </header>
+  <main class="home">
+    <div class="home-inner">
+      <div class="brand"><span class="brand-mark">g</span><span>gong cha</span></div>
+      <div class="bubble bubble-one" aria-hidden="true"></div>
+      <div class="bubble bubble-two" aria-hidden="true"></div>
+      <div class="bubble bubble-three" aria-hidden="true"></div>
 
-  <main>
-    <section class="hero">
-      <div>
-        <div class="eyebrow">Your perfect blend is waiting</div>
-        <h1>Find your next Gong cha favorite.</h1>
-        <p>Tell me what you’re in the mood for. I’ll ask a few quick questions and help you discover a drink to try.</p>
-      </div>
-      <div class="hero-art" aria-hidden="true"><div class="sun"></div><div class="straw"></div><div class="cup"></div></div>
-    </section>
+      <section class="hero-copy" aria-labelledby="page-title">
+        <p class="kicker">A little help for your next sip</p>
+        <h1 id="page-title" aria-label="Gong Chat">
+          <span class="letter" data-depth="1.15" style="--rotation:-4deg">G</span>
+          <span class="letter" data-depth=".8" style="--rotation:2deg">o</span>
+          <span class="letter" data-depth="1.1" style="--rotation:4deg">n</span>
+          <span class="letter" data-depth=".9" style="--rotation:-2deg">g</span>
+          <span class="letter space" aria-hidden="true"></span>
+          <span class="letter" data-depth=".9" style="--rotation:3deg">C</span>
+          <span class="letter" data-depth="1.15" style="--rotation:-3deg">h</span>
+          <span class="letter" data-depth=".8" style="--rotation:4deg">a</span>
+          <span class="letter" data-depth="1" style="--rotation:-1deg">t</span>
+        </h1>
+        <p class="subtitle">Answer a few quick questions and discover the Gong cha drink that matches your mood, flavor cravings, and favorite toppings.</p>
+        <a class="cta" href="chat.html">Find my drink</a>
+      </section>
 
-    <section class="chat-card" aria-label="Gong cha drink recommendation chat">
-      <div class="chat-head"><div class="chat-title"><span class="bot-dot"></span><span>Gong cha drink guide</span></div><div class="status">online · ready to help</div></div>
-      <div class="messages" id="messages" aria-live="polite"></div>
-      <div class="typing" id="typing" aria-label="Assistant is typing"><span></span><span></span><span></span></div>
-      <div class="quick-replies" id="quick-replies">
-        <button class="quick-reply" type="button" data-message="I want something creamy and milky">Creamy & milky</button>
-        <button class="quick-reply" type="button" data-message="I want something fruity and refreshing">Fruity & refreshing</button>
-        <button class="quick-reply" type="button" data-message="I want a tea-forward drink">Tea-forward</button>
-        <button class="quick-reply" type="button" data-message="Surprise me!">Surprise me</button>
+      <div class="drinks-stage" aria-label="Illustrated bubble tea drinks">
+        <div class="drink drink-a" tabindex="0" aria-label="Milk tea with pearls illustration">
+          <div class="drink-shadow"></div><div class="straw"></div>
+          <div class="cup"><div class="cream"></div><div class="cup-label">milk tea</div></div>
+        </div>
+        <div class="drink drink-b" tabindex="0" aria-label="Strawberry bubble tea illustration">
+          <div class="drink-shadow"></div><div class="straw"></div>
+          <div class="cup"><div class="cream"></div><div class="cup-label">strawberry</div></div>
+        </div>
+        <div class="drink drink-c" tabindex="0" aria-label="Matcha bubble tea illustration">
+          <div class="drink-shadow"></div><div class="straw"></div>
+          <div class="cup"><div class="cream"></div><div class="cup-label">matcha</div></div>
+        </div>
       </div>
-      <form class="composer" id="composer">
-        <input id="message-input" name="message" autocomplete="off" maxlength="800" placeholder="Tell me what you’re craving..." aria-label="Your message">
-        <button class="send" id="send-button" type="submit">Send</button>
-      </form>
-    </section>
-    <p class="fine-print">Menu inspiration from the <a href="https://www.gong-cha.com/our-products/" target="_blank" rel="noreferrer">official Gong cha product guide</a>. Availability and customization options may vary by location.</p>
+      <p class="hint">Move your cursor · shake a drink</p>
+    </div>
   </main>
 
   <script>
-    // Replace this with the public URL Render gives your backend after deployment.
-    const BACKEND_URL = "https://gong-cha-chat-api.onrender.com";
-    const messages = document.getElementById("messages");
-    const typing = document.getElementById("typing");
-    const composer = document.getElementById("composer");
-    const input = document.getElementById("message-input");
-    const sendButton = document.getElementById("send-button");
-    const quickReplies = document.getElementById("quick-replies");
-    const history = [];
+    const title = document.getElementById("page-title");
+    const letters = [...document.querySelectorAll(".letter[data-depth]")];
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    function addMessage(role, text) {
-      const row = document.createElement("div");
-      row.className = `message ${role}`;
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
-      bubble.textContent = text;
-      row.appendChild(bubble);
-      messages.appendChild(row);
-      messages.scrollTop = messages.scrollHeight;
-    }
-
-    function setBusy(busy) {
-      typing.classList.toggle("visible", busy);
-      sendButton.disabled = busy;
-      input.disabled = busy;
-      if (busy) messages.appendChild(typing);
-      messages.scrollTop = messages.scrollHeight;
-    }
-
-    async function sendMessage(text) {
-      const message = text.trim();
-      if (!message || sendButton.disabled) return;
-      input.value = "";
-      addMessage("user", message);
-      history.push({ role: "user", content: message });
-      setBusy(true);
-      try {
-        const response = await fetch(`${BACKEND_URL}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message, history: history.slice(-12) })
+    if (!reducedMotion) {
+      title.addEventListener("pointermove", (event) => {
+        const bounds = title.getBoundingClientRect();
+        const x = (event.clientX - (bounds.left + bounds.width / 2)) / bounds.width;
+        const y = (event.clientY - (bounds.top + bounds.height / 2)) / bounds.height;
+        letters.forEach((letter) => {
+          const depth = Number(letter.dataset.depth);
+          letter.style.transform = `translate3d(${x * depth * 22}px, ${y * depth * 18}px, 0) rotate(${getComputedStyle(letter).getPropertyValue("--rotation")})`;
         });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "The drink guide is unavailable right now.");
-        const reply = data.reply || "I’m having trouble finding a match. Please try again.";
-        addMessage("assistant", reply);
-        history.push({ role: "assistant", content: reply });
-      } catch (error) {
-        addMessage("assistant", `Sorry—${error.message} Please try again in a moment.`);
-        history.pop();
-      } finally {
-        setBusy(false);
-        input.focus();
-      }
+      });
+      title.addEventListener("pointerleave", () => {
+        letters.forEach((letter) => { letter.style.transform = ""; });
+      });
     }
-
-    composer.addEventListener("submit", (event) => { event.preventDefault(); sendMessage(input.value); });
-    quickReplies.addEventListener("click", (event) => {
-      const button = event.target.closest("button");
-      if (button) sendMessage(button.dataset.message);
-    });
-    addMessage("assistant", "Hi! I’m your Gong cha drink guide. Are you leaning creamy, fruity, tea-forward, or totally open to a surprise?");
   </script>
 </body>
 </html>
