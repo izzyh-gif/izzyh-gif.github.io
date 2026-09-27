@@ -114,38 +114,49 @@
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
-      gap: .04em;
+      gap: .055em;
       margin: 0;
       color: var(--boba);
-      font-family: "Trebuchet MS", "Arial Rounded MT Bold", ui-rounded, sans-serif;
+      font-family: "Cooper Black", "Arial Rounded MT Bold", "Avenir Next Rounded", ui-rounded, "Trebuchet MS", sans-serif;
       font-size: clamp(60px, 11vw, 126px);
       font-weight: 950;
-      letter-spacing: -.085em;
+      letter-spacing: -.075em;
       line-height: .88;
-      text-shadow: 0 6px 0 #241512, 0 10px 18px rgba(82, 42, 27, .25);
       user-select: none;
+      filter: drop-shadow(0 14px 9px rgba(82, 42, 27, .2));
     }
     .letter {
       display: inline-block;
       position: relative;
-      transform: translate3d(0, 0, 0) rotate(var(--rotation));
-      transition: transform .35s cubic-bezier(.2, .8, .2, 1);
+      color: #5b3024;
+      -webkit-text-fill-color: transparent;
+      -webkit-text-stroke: clamp(3px, .38vw, 6px) #3a1c16;
+      background: linear-gradient(145deg, #c18a70 0%, #844c39 18%, #4b271f 54%, #2d1713 82%, #663326 100%);
+      background-clip: text;
+      -webkit-background-clip: text;
+      paint-order: stroke fill;
+      text-shadow: 0 6px 0 #2d1713, 0 10px 0 rgba(48, 22, 17, .45), 0 16px 17px rgba(82, 42, 27, .22);
+      transform: translate3d(0, 0, 0) rotate(var(--rotation)) scale(1);
+      transition: transform .16s cubic-bezier(.22, .8, .2, 1);
       will-change: transform;
     }
-    .letter::before {
+    .letter::before,
+    .letter::after {
       position: absolute;
-      top: 13%;
-      left: 18%;
-      width: 15%;
-      height: 8%;
+      z-index: 2;
       border-radius: 50%;
-      background: rgba(255, 247, 233, .68);
+      background: linear-gradient(135deg, rgba(255, 255, 255, .9), rgba(255, 247, 233, .08));
       content: "";
-      filter: blur(.4px);
-      transform: rotate(-24deg);
+      pointer-events: none;
+      filter: blur(.2px);
+      opacity: .9;
     }
-    .letter:nth-child(2n)::before { top: 20%; left: 24%; width: 10%; height: 6%; }
-    .letter.space { width: .2em; }
+    .letter::before { top: 14%; left: 21%; width: 17%; height: 8%; transform: rotate(-25deg); }
+    .letter::after { top: 29%; left: 31%; width: 7%; height: 4%; opacity: .7; }
+    .letter:nth-child(2n)::before { top: 20%; left: 24%; width: 12%; height: 6%; }
+    .letter:nth-child(3n)::after { top: 15%; left: 44%; width: 6%; height: 3%; }
+    .letter.space { width: .22em; -webkit-text-stroke: 0; background: none; text-shadow: none; }
+    .letter.space::before, .letter.space::after { display: none; }
     .subtitle {
       max-width: 470px;
       margin: 25px auto 25px;
@@ -222,16 +233,12 @@
       box-shadow: inset 0 5px rgba(255, 255, 255, .28);
       content: "";
     }
-    .cup::after {
-      position: absolute;
-      right: 11px;
-      bottom: 13px;
-      left: 11px;
-      height: 43px;
-      border-radius: 0 0 20px 20px;
-      background: radial-gradient(circle at 13px 11px, var(--boba) 0 6px, transparent 7px), radial-gradient(circle at 39px 25px, var(--boba) 0 6px, transparent 7px), radial-gradient(circle at 67px 10px, var(--boba) 0 6px, transparent 7px), radial-gradient(circle at 91px 29px, var(--boba) 0 6px, transparent 7px), radial-gradient(circle at 51px 38px, var(--boba) 0 5px, transparent 6px);
-      content: "";
-    }
+    .cup::after { display: none; }
+    .cup-boba { position: absolute; z-index: 2; right: 8px; bottom: 9px; left: 8px; display: flex; flex-wrap: wrap; align-content: flex-end; justify-content: center; gap: 4px 5px; height: 107px; overflow: hidden; }
+    .cup-boba i { display: block; flex: 0 0 15px; width: 15px; height: 15px; border: 1px solid rgba(23, 14, 14, .72); border-radius: 50%; background: radial-gradient(circle at 31% 25%, #75647b 0 9%, #3a2637 18%, #1a1520 62%, #09080c 100%); box-shadow: inset 3px 3px 2px rgba(255, 255, 255, .18), 0 2px 2px rgba(46, 25, 18, .3); }
+    .cup-boba i:nth-child(3n) { transform: translateY(-7px) scale(.86); }
+    .cup-boba i:nth-child(4n) { transform: translateY(-14px) scale(.74); }
+    .cup-boba i:nth-child(5n) { transform: translateY(-22px) scale(.68); }
     .cream {
       position: absolute;
       z-index: 3;
@@ -259,6 +266,16 @@
       font-weight: 700;
       letter-spacing: .08em;
       text-transform: uppercase;
+    }
+    .disclaimer {
+      position: absolute;
+      right: 20px;
+      bottom: 10px;
+      left: 20px;
+      margin: 0;
+      color: rgba(67, 40, 29, .62);
+      font-size: 11px;
+      text-align: center;
     }
     .bubble {
       position: absolute;
@@ -331,38 +348,82 @@
       <div class="drinks-stage" aria-label="Illustrated bubble tea drinks">
         <div class="drink drink-a" tabindex="0" aria-label="Milk tea with pearls illustration">
           <div class="drink-shadow"></div><div class="straw"></div>
-          <div class="cup"><div class="cream"></div><div class="cup-label">milk tea</div></div>
+          <div class="cup"><div class="cream"></div><div class="cup-boba" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="cup-label">milk tea</div></div>
         </div>
         <div class="drink drink-b" tabindex="0" aria-label="Strawberry bubble tea illustration">
           <div class="drink-shadow"></div><div class="straw"></div>
-          <div class="cup"><div class="cream"></div><div class="cup-label">strawberry</div></div>
+          <div class="cup"><div class="cream"></div><div class="cup-boba" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="cup-label">strawberry</div></div>
         </div>
         <div class="drink drink-c" tabindex="0" aria-label="Matcha bubble tea illustration">
           <div class="drink-shadow"></div><div class="straw"></div>
-          <div class="cup"><div class="cream"></div><div class="cup-label">matcha</div></div>
+          <div class="cup"><div class="cream"></div><div class="cup-boba" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="cup-label">matcha</div></div>
         </div>
       </div>
       <p class="hint">Move your cursor · shake a drink</p>
     </div>
+    <footer class="disclaimer">This page is not affiliated with Gong Cha.</footer>
   </main>
 
   <script>
     const title = document.getElementById("page-title");
-    const letters = [...document.querySelectorAll(".letter[data-depth]")];
+    const letters = [...document.querySelectorAll(".letter[data-depth]")].map((element) => ({
+      element,
+      depth: Number(element.dataset.depth),
+      baseRotation: parseFloat(element.style.getPropertyValue("--rotation")) || 0,
+      homeX: 0,
+      homeY: 0,
+      x: 0,
+      y: 0,
+      rotation: 0,
+      scale: 1,
+    }));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const pointer = { x: -1000, y: -1000, active: false };
+    const influenceRadius = 230;
+
+    function calibrateLetters() {
+      letters.forEach((letter) => { letter.element.style.transform = ""; });
+      letters.forEach((letter) => {
+        const bounds = letter.element.getBoundingClientRect();
+        letter.homeX = bounds.left + bounds.width / 2;
+        letter.homeY = bounds.top + bounds.height / 2;
+      });
+    }
 
     if (!reducedMotion) {
-      title.addEventListener("pointermove", (event) => {
-        const bounds = title.getBoundingClientRect();
-        const x = (event.clientX - (bounds.left + bounds.width / 2)) / bounds.width;
-        const y = (event.clientY - (bounds.top + bounds.height / 2)) / bounds.height;
+      window.addEventListener("pointermove", (event) => {
+        pointer.x = event.clientX;
+        pointer.y = event.clientY;
+        pointer.active = true;
+      }, { passive: true });
+      window.addEventListener("blur", () => { pointer.active = false; });
+      document.addEventListener("mouseleave", () => { pointer.active = false; });
+      window.addEventListener("resize", calibrateLetters, { passive: true });
+
+      function animateLetters() {
         letters.forEach((letter) => {
-          const depth = Number(letter.dataset.depth);
-          letter.style.transform = `translate3d(${x * depth * 22}px, ${y * depth * 18}px, 0) rotate(${getComputedStyle(letter).getPropertyValue("--rotation")})`;
+          const deltaX = letter.homeX - pointer.x;
+          const deltaY = letter.homeY - pointer.y;
+          const distance = Math.max(1, Math.hypot(deltaX, deltaY));
+          const proximity = pointer.active ? Math.max(0, 1 - distance / influenceRadius) : 0;
+          const force = proximity * proximity * 34 * letter.depth;
+          const targetX = (deltaX / distance) * force;
+          const targetY = (deltaY / distance) * force;
+          const targetRotation = letter.baseRotation + targetX * .22;
+          const targetScale = 1 + proximity * .06;
+
+          letter.x += (targetX - letter.x) * .16;
+          letter.y += (targetY - letter.y) * .16;
+          letter.rotation += (targetRotation - letter.rotation) * .14;
+          letter.scale += (targetScale - letter.scale) * .14;
+          letter.element.style.transform = `translate3d(${letter.x.toFixed(2)}px, ${letter.y.toFixed(2)}px, 0) rotate(${letter.rotation.toFixed(2)}deg) scale(${letter.scale.toFixed(3)})`;
         });
-      });
-      title.addEventListener("pointerleave", () => {
-        letters.forEach((letter) => { letter.style.transform = ""; });
+        requestAnimationFrame(animateLetters);
+      }
+
+      requestAnimationFrame(() => {
+        calibrateLetters();
+        requestAnimationFrame(animateLetters);
       });
     }
   </script>

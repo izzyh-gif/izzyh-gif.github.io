@@ -64,10 +64,26 @@
     .hero p { max-width: 470px; margin: 0; color: #586575; font-size: 17px; line-height: 1.65; }
     .hero-art { position: relative; min-height: 250px; display: grid; place-items: center; }
     .sun { position: absolute; width: 210px; height: 210px; border-radius: 50%; background: var(--pink); }
-    .cup { position: relative; z-index: 1; width: 108px; height: 155px; border: 6px solid var(--navy); border-top: 0; border-radius: 7px 7px 27px 27px; background: linear-gradient(#c99a60 0 64%, #ecd1a3 64%); box-shadow: 0 17px 0 -10px var(--navy); }
-    .cup::before { content: ""; position: absolute; top: -22px; left: -14px; width: 124px; height: 24px; border: 6px solid var(--navy); border-radius: 50%; background: #f5e6c9; }
-    .cup::after { content: "••••"; position: absolute; bottom: 12px; left: 24px; color: var(--navy); font-size: 19px; letter-spacing: 8px; }
-    .straw { position: absolute; z-index: 0; width: 7px; height: 105px; margin: -205px 0 0 50px; transform: rotate(17deg); border-radius: 5px; background: var(--red); }
+    .hero-boba { position: relative; z-index: 1; width: 210px; height: 270px; }
+    .hero-straw { position: absolute; z-index: 3; top: -3px; left: 54px; width: 13px; height: 166px; border: 3px solid #1d2027; border-radius: 10px; background: linear-gradient(105deg, #4e5560, #11151d 52%, #858b92); box-shadow: 5px 0 rgba(255, 255, 255, .2); transform: rotate(-18deg); transform-origin: bottom center; }
+    .hero-cup { position: absolute; right: 23px; bottom: 9px; left: 23px; height: 190px; overflow: visible; border: 4px solid rgba(34, 30, 30, .8); border-top: 0; border-radius: 10px 10px 34px 34px; background: linear-gradient(90deg, rgba(255, 255, 255, .26), rgba(224, 148, 68, .85) 14%, rgba(243, 165, 76, .9) 50%, rgba(255, 222, 155, .75) 82%, rgba(131, 71, 37, .4)); box-shadow: inset 14px 0 rgba(255, 255, 255, .34), inset -12px 0 rgba(83, 40, 25, .2), 0 13px 0 -7px rgba(34, 30, 30, .85); }
+    .hero-cup::before { position: absolute; z-index: 5; top: -20px; right: -10px; left: -10px; height: 31px; border: 4px solid rgba(34, 30, 30, .85); border-radius: 50%; background: linear-gradient(rgba(255, 255, 255, .78), rgba(220, 154, 90, .42)); box-shadow: inset 0 7px rgba(255, 255, 255, .58), 0 4px 0 rgba(255, 255, 255, .3); content: ""; }
+    .hero-cup::after { position: absolute; z-index: 4; top: 5px; right: 6px; bottom: 10px; left: 7px; border-radius: 7px 7px 27px 27px; background: linear-gradient(105deg, rgba(255, 255, 255, .48), transparent 21%, transparent 68%, rgba(255, 255, 255, .28)); content: ""; pointer-events: none; }
+    .hero-tea-layer { position: absolute; z-index: 1; right: 5px; bottom: 5px; left: 5px; height: 145px; border-radius: 0 0 25px 25px; background: linear-gradient(180deg, rgba(247, 194, 114, .5), rgba(206, 105, 34, .35) 42%, rgba(132, 61, 27, .58)); }
+    .hero-tea-layer::before { position: absolute; top: 31px; right: 0; left: 0; height: 2px; background: rgba(255, 230, 181, .48); box-shadow: 0 20px rgba(255, 215, 151, .18), 0 43px rgba(107, 52, 29, .2); content: ""; }
+    .hero-ice { position: absolute; z-index: 2; width: 34px; height: 23px; border: 2px solid rgba(255, 255, 255, .38); border-radius: 7px; background: rgba(255, 247, 220, .2); transform: rotate(18deg); }
+    .hero-ice.one { top: 34px; left: 20px; }
+    .hero-ice.two { top: 54px; right: 19px; transform: rotate(-21deg); }
+    .hero-ice.three { top: 76px; left: 52px; transform: rotate(8deg); }
+    .hero-foam { position: absolute; z-index: 6; top: -46px; left: 18px; width: 98px; height: 57px; border: 3px solid rgba(104, 56, 30, .58); border-radius: 57% 44% 40% 42%; background: linear-gradient(145deg, #fff7df 4%, #f0c982 50%, #fff0c6 72%, #bb713a); box-shadow: inset 12px 7px rgba(255, 255, 255, .7), 8px 10px rgba(129, 67, 29, .16); transform: rotate(-5deg); }
+    .hero-foam::before { position: absolute; right: -8px; bottom: 6px; width: 34px; height: 18px; border-radius: 50%; background: #e8b86d; box-shadow: -46px 10px #f8e3b5; content: ""; }
+    .hero-pearls { position: absolute; z-index: 3; right: 11px; bottom: 7px; left: 11px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center; gap: 4px 5px; height: 82px; overflow: hidden; }
+    .hero-pearls span { display: block; width: 17px; height: 17px; border: 1px solid rgba(16, 17, 26, .7); border-radius: 50%; background: radial-gradient(circle at 32% 27%, #65708f 0 10%, #2c3046 18%, #10131f 62%, #05060a 100%); box-shadow: inset 3px 3px 2px rgba(255, 255, 255, .18), 0 2px 2px rgba(30, 17, 12, .32); }
+    .hero-pearls span:nth-child(3n) { transform: translateY(-18px) scale(.82); }
+    .hero-pearls span:nth-child(4n) { transform: translateY(-34px) scale(.72); }
+    .hero-cup-highlight { position: absolute; z-index: 7; top: 22px; left: 18px; width: 12px; height: 115px; border-radius: 50%; background: linear-gradient(rgba(255, 255, 255, .72), rgba(255, 255, 255, 0)); filter: blur(2px); transform: rotate(5deg); }
+    .hero-label { position: absolute; z-index: 8; right: 19px; bottom: 58px; left: 19px; padding: 6px 3px; border: 2px solid rgba(75, 42, 31, .4); border-radius: 8px; color: rgba(75, 42, 31, .72); font-size: 9px; font-weight: 900; letter-spacing: .16em; text-align: center; text-transform: uppercase; }
+    .hero-shadow { position: absolute; right: 27px; bottom: 1px; left: 23px; height: 17px; border-radius: 50%; background: rgba(75, 42, 31, .2); filter: blur(4px); }
 
     .chat-card { overflow: hidden; border: 1px solid var(--line); border-radius: 26px; background: var(--white); box-shadow: var(--shadow); }
     .chat-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 25px; color: var(--white); background: var(--navy); }
@@ -95,6 +111,7 @@
     .send:disabled { cursor: wait; opacity: .6; }
     .fine-print { margin: 15px 4px 0; color: #7b8490; font-size: 12px; line-height: 1.5; text-align: center; }
     .fine-print a { color: var(--red-dark); }
+    .disclaimer { margin: 30px 4px 0; color: #8b929c; font-size: 11px; text-align: center; }
 
     @keyframes rise { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
@@ -104,7 +121,7 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><div class="brand-mark">g</div><div><div class="brand-name">gong cha</div><div class="brand-note">drink match</div></div></div>
+    <div class="brand"><div class="brand-mark">g</div><div><div class="brand-name">Gong Cha</div><div class="brand-note">drink match</div></div></div>
     <div class="brand-note">crafted for your next sip</div>
   </header>
 
@@ -112,14 +129,30 @@
     <section class="hero">
       <div>
         <div class="eyebrow">Your perfect blend is waiting</div>
-        <h1>Find your next Gong cha favorite.</h1>
-        <p>Tell me what you’re in the mood for. I’ll ask a few quick questions and help you discover a drink to try.</p>
+        <h1>Find your next Gong Cha favorite.</h1>
+        <p>Tell me what you’re in the mood for. I’ll ask a few quick questions and help you discover a drink to try. Note: my first response may take a while to load!</p>
       </div>
-      <div class="hero-art" aria-hidden="true"><div class="sun"></div><div class="straw"></div><div class="cup"></div></div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="sun"></div>
+        <div class="hero-boba">
+          <div class="hero-shadow"></div>
+          <div class="hero-straw"></div>
+          <div class="hero-cup">
+            <div class="hero-tea-layer"></div>
+            <div class="hero-ice one"></div><div class="hero-ice two"></div><div class="hero-ice three"></div>
+            <div class="hero-pearls">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="hero-cup-highlight"></div>
+            <div class="hero-label">Gong Cha</div>
+            <div class="hero-foam"></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="chat-card" aria-label="Gong cha drink recommendation chat">
-      <div class="chat-head"><div class="chat-title"><span class="bot-dot"></span><span>Gong cha drink guide</span></div><div class="status">online · ready to help</div></div>
+      <div class="chat-head"><div class="chat-title"><span class="bot-dot"></span><span>Gong Cha Drink Guide</span></div><div class="status">online · ready to help</div></div>
       <div class="messages" id="messages" aria-live="polite"></div>
       <div class="typing" id="typing" aria-label="Assistant is typing"><span></span><span></span><span></span></div>
       <div class="quick-replies" id="quick-replies">
@@ -133,8 +166,9 @@
         <button class="send" id="send-button" type="submit">Send</button>
       </form>
     </section>
-    <p class="fine-print">Menu inspiration from the <a href="https://www.gong-cha.com/our-products/" target="_blank" rel="noreferrer">official Gong cha product guide</a>. Availability and customization options may vary by location.</p>
+    <p class="fine-print">Menu inspiration from the <a href="https://www.gong-cha.com/our-products/" target="_blank" rel="noreferrer">official Gong Cha product guide</a>. Availability and customization options may vary by location.</p>
   </main>
+  <footer class="disclaimer">This page is not affiliated with Gong Cha.</footer>
 
   <script>
     // Replace this with the public URL Render gives your backend after deployment.
