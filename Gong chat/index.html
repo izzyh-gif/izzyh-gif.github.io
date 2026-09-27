@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Find your Gong cha drink match with a quick, friendly chat.">
+  <title>Gong cha Drink Match</title>
+  <style>
+    :root {
+      --red: #d71920;
+      --red-dark: #a80f16;
+      --navy: #071c35;
+      --ink: #17263b;
+      --cream: #fffaf3;
+      --pink: #f8e6e2;
+      --gold: #f2b544;
+      --line: #eaded5;
+      --white: #ffffff;
+      --shadow: 0 20px 55px rgba(7, 28, 53, .13);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background: var(--cream);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .topbar {
+      height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(20px, 6vw, 88px);
+      color: var(--white);
+      background: var(--red);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border: 2px solid var(--white);
+      border-radius: 50%;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .brand-name { font-size: 21px; font-weight: 800; letter-spacing: .01em; }
+    .brand-note { font-size: 12px; opacity: .85; }
+
+    main {
+      width: min(1020px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 52px 0 60px;
+    }
+
+    .hero { display: grid; grid-template-columns: 1fr 1.05fr; gap: 42px; align-items: center; margin-bottom: 34px; }
+    .eyebrow { color: var(--red); font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { max-width: 480px; margin: 10px 0 15px; color: var(--navy); font-family: Georgia, "Times New Roman", serif; font-size: clamp(40px, 6vw, 68px); line-height: .98; letter-spacing: -.045em; }
+    .hero p { max-width: 470px; margin: 0; color: #586575; font-size: 17px; line-height: 1.65; }
+    .hero-art { position: relative; min-height: 250px; display: grid; place-items: center; }
+    .sun { position: absolute; width: 210px; height: 210px; border-radius: 50%; background: var(--pink); }
+    .cup { position: relative; z-index: 1; width: 108px; height: 155px; border: 6px solid var(--navy); border-top: 0; border-radius: 7px 7px 27px 27px; background: linear-gradient(#c99a60 0 64%, #ecd1a3 64%); box-shadow: 0 17px 0 -10px var(--navy); }
+    .cup::before { content: ""; position: absolute; top: -22px; left: -14px; width: 124px; height: 24px; border: 6px solid var(--navy); border-radius: 50%; background: #f5e6c9; }
+    .cup::after { content: "••••"; position: absolute; bottom: 12px; left: 24px; color: var(--navy); font-size: 19px; letter-spacing: 8px; }
+    .straw { position: absolute; z-index: 0; width: 7px; height: 105px; margin: -205px 0 0 50px; transform: rotate(17deg); border-radius: 5px; background: var(--red); }
+
+    .chat-card { overflow: hidden; border: 1px solid var(--line); border-radius: 26px; background: var(--white); box-shadow: var(--shadow); }
+    .chat-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 25px; color: var(--white); background: var(--navy); }
+    .chat-title { display: flex; align-items: center; gap: 12px; font-weight: 750; }
+    .bot-dot { width: 11px; height: 11px; border-radius: 50%; background: #67d391; box-shadow: 0 0 0 5px rgba(103, 211, 145, .14); }
+    .status { color: #c6d3e4; font-size: 12px; }
+    .messages { min-height: 320px; max-height: 460px; overflow-y: auto; padding: 24px; background: #fffdfb; }
+    .message { display: flex; margin: 0 0 17px; animation: rise .2s ease-out; }
+    .message.user { justify-content: flex-end; }
+    .bubble { max-width: min(78%, 650px); padding: 14px 17px; border-radius: 18px 18px 18px 4px; color: var(--ink); background: var(--pink); line-height: 1.5; white-space: pre-wrap; }
+    .user .bubble { border-radius: 18px 18px 4px 18px; color: var(--white); background: var(--red); }
+    .typing { display: none; align-items: center; gap: 5px; width: max-content; margin: 0 0 17px; padding: 13px 16px; border-radius: 18px 18px 18px 4px; background: var(--pink); }
+    .typing.visible { display: flex; }
+    .typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--red); animation: bounce 1s infinite; }
+    .typing span:nth-child(2) { animation-delay: .15s; }
+    .typing span:nth-child(3) { animation-delay: .3s; }
+    .quick-replies { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 24px 17px; background: #fffdfb; }
+    .quick-reply { cursor: pointer; border: 1px solid #e1b4ad; border-radius: 999px; padding: 9px 13px; color: var(--red-dark); background: var(--white); font: inherit; font-size: 13px; transition: .15s ease; }
+    .quick-reply:hover, .quick-reply:focus-visible { border-color: var(--red); color: var(--white); background: var(--red); outline: none; }
+    .composer { display: flex; gap: 10px; padding: 17px; border-top: 1px solid var(--line); background: var(--white); }
+    .composer input { min-width: 0; flex: 1; border: 1px solid #d8dce2; border-radius: 13px; padding: 14px 15px; color: var(--ink); background: #fbfcfe; font: inherit; outline: none; }
+    .composer input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(215, 25, 32, .12); }
+    .send { cursor: pointer; border: 0; border-radius: 13px; padding: 0 21px; color: var(--white); background: var(--red); font: inherit; font-weight: 750; }
+    .send:hover, .send:focus-visible { background: var(--red-dark); }
+    .send:disabled { cursor: wait; opacity: .6; }
+    .fine-print { margin: 15px 4px 0; color: #7b8490; font-size: 12px; line-height: 1.5; text-align: center; }
+    .fine-print a { color: var(--red-dark); }
+
+    @keyframes rise { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+    @media (max-width: 760px) { .hero { grid-template-columns: 1fr; gap: 8px; } .hero-art { min-height: 180px; } .sun { width: 150px; height: 150px; } .topbar { height: 65px; } main { padding-top: 30px; } .status { display: none; } }
+    @media (max-width: 450px) { .composer { padding: 12px; } .send { padding: 0 15px; } .messages { padding: 18px; } .quick-replies { padding: 0 18px 14px; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">g</div><div><div class="brand-name">gong cha</div><div class="brand-note">drink match</div></div></div>
+    <div class="brand-note">crafted for your next sip</div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Your perfect blend is waiting</div>
+        <h1>Find your next Gong cha favorite.</h1>
+        <p>Tell me what you’re in the mood for. I’ll ask a few quick questions and help you discover a drink to try.</p>
+      </div>
+      <div class="hero-art" aria-hidden="true"><div class="sun"></div><div class="straw"></div><div class="cup"></div></div>
+    </section>
+
+    <section class="chat-card" aria-label="Gong cha drink recommendation chat">
+      <div class="chat-head"><div class="chat-title"><span class="bot-dot"></span><span>Gong cha drink guide</span></div><div class="status">online · ready to help</div></div>
+      <div class="messages" id="messages" aria-live="polite"></div>
+      <div class="typing" id="typing" aria-label="Assistant is typing"><span></span><span></span><span></span></div>
+      <div class="quick-replies" id="quick-replies">
+        <button class="quick-reply" type="button" data-message="I want something creamy and milky">Creamy & milky</button>
+        <button class="quick-reply" type="button" data-message="I want something fruity and refreshing">Fruity & refreshing</button>
+        <button class="quick-reply" type="button" data-message="I want a tea-forward drink">Tea-forward</button>
+        <button class="quick-reply" type="button" data-message="Surprise me!">Surprise me</button>
+      </div>
+      <form class="composer" id="composer">
+        <input id="message-input" name="message" autocomplete="off" maxlength="800" placeholder="Tell me what you’re craving..." aria-label="Your message">
+        <button class="send" id="send-button" type="submit">Send</button>
+      </form>
+    </section>
+    <p class="fine-print">Menu inspiration from the <a href="https://www.gong-cha.com/our-products/" target="_blank" rel="noreferrer">official Gong cha product guide</a>. Availability and customization options may vary by location.</p>
+  </main>
+
+  <script>
+    // Replace this with the public URL Render gives your backend after deployment.
+    const BACKEND_URL = "https://gong-cha-chat-api.onrender.com";
+    const messages = document.getElementById("messages");
+    const typing = document.getElementById("typing");
+    const composer = document.getElementById("composer");
+    const input = document.getElementById("message-input");
+    const sendButton = document.getElementById("send-button");
+    const quickReplies = document.getElementById("quick-replies");
+    const history = [];
+
+    function addMessage(role, text) {
+      const row = document.createElement("div");
+      row.className = `message ${role}`;
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = text;
+      row.appendChild(bubble);
+      messages.appendChild(row);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function setBusy(busy) {
+      typing.classList.toggle("visible", busy);
+      sendButton.disabled = busy;
+      input.disabled = busy;
+      if (busy) messages.appendChild(typing);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    async function sendMessage(text) {
+      const message = text.trim();
+      if (!message || sendButton.disabled) return;
+      input.value = "";
+      addMessage("user", message);
+      history.push({ role: "user", content: message });
+      setBusy(true);
+      try {
+        const response = await fetch(`${BACKEND_URL}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, history: history.slice(-12) })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "The drink guide is unavailable right now.");
+        const reply = data.reply || "I’m having trouble finding a match. Please try again.";
+        addMessage("assistant", reply);
+        history.push({ role: "assistant", content: reply });
+      } catch (error) {
+        addMessage("assistant", `Sorry—${error.message} Please try again in a moment.`);
+        history.pop();
+      } finally {
+        setBusy(false);
+        input.focus();
+      }
+    }
+
+    composer.addEventListener("submit", (event) => { event.preventDefault(); sendMessage(input.value); });
+    quickReplies.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (button) sendMessage(button.dataset.message);
+    });
+    addMessage("assistant", "Hi! I’m your Gong cha drink guide. Are you leaning creamy, fruity, tea-forward, or totally open to a surprise?");
+  </script>
+</body>
+</html>
