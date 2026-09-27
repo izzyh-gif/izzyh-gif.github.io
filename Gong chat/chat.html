@@ -94,6 +94,7 @@
     .message { display: flex; margin: 0 0 17px; animation: rise .2s ease-out; }
     .message.user { justify-content: flex-end; }
     .bubble { max-width: min(78%, 650px); padding: 14px 17px; border-radius: 18px 18px 18px 4px; color: var(--ink); background: var(--pink); line-height: 1.5; white-space: pre-wrap; }
+    .bubble strong { color: var(--red-dark); font-weight: 850; text-shadow: 0 .5px 0 rgba(168, 15, 22, .18); }
     .user .bubble { border-radius: 18px 18px 4px 18px; color: var(--white); background: var(--red); }
     .typing { display: none; align-items: center; gap: 5px; width: max-content; margin: 0 0 17px; padding: 13px 16px; border-radius: 18px 18px 18px 4px; background: var(--pink); }
     .typing.visible { display: flex; }
@@ -181,12 +182,27 @@
     const quickReplies = document.getElementById("quick-replies");
     const history = [];
 
+    function renderAssistantText(container, text) {
+      const boldPattern = /\\*\\*([^*]+)\\*\\*/g;
+      let cursor = 0;
+      let match;
+      while ((match = boldPattern.exec(text)) !== null) {
+        if (match.index > cursor) container.appendChild(document.createTextNode(text.slice(cursor, match.index)));
+        const strong = document.createElement("strong");
+        strong.textContent = match[1];
+        container.appendChild(strong);
+        cursor = match.index + match[0].length;
+      }
+      if (cursor < text.length) container.appendChild(document.createTextNode(text.slice(cursor)));
+    }
+
     function addMessage(role, text) {
       const row = document.createElement("div");
       row.className = `message ${role}`;
       const bubble = document.createElement("div");
       bubble.className = "bubble";
-      bubble.textContent = text;
+      if (role === "assistant") renderAssistantText(bubble, text);
+      else bubble.textContent = text;
       row.appendChild(bubble);
       messages.appendChild(row);
       messages.scrollTop = messages.scrollHeight;

@@ -112,18 +112,24 @@
     }
     h1 {
       display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: .055em;
+      flex-direction: column;
+      align-items: center;
+      gap: .04em;
       margin: 0;
       color: var(--boba);
       font-family: "Cooper Black", "Arial Rounded MT Bold", "Avenir Next Rounded", ui-rounded, "Trebuchet MS", sans-serif;
       font-size: clamp(60px, 11vw, 126px);
       font-weight: 950;
       letter-spacing: -.075em;
-      line-height: .88;
+      line-height: .82;
       user-select: none;
       filter: drop-shadow(0 14px 9px rgba(82, 42, 27, .2));
+    }
+    .title-line {
+      display: flex;
+      justify-content: center;
+      gap: .055em;
+      white-space: nowrap;
     }
     .letter {
       display: inline-block;
@@ -234,11 +240,11 @@
       content: "";
     }
     .cup::after { display: none; }
-    .cup-boba { position: absolute; z-index: 2; right: 8px; bottom: 9px; left: 8px; display: flex; flex-wrap: wrap; align-content: flex-end; justify-content: center; gap: 4px 5px; height: 107px; overflow: hidden; }
-    .cup-boba i { display: block; flex: 0 0 15px; width: 15px; height: 15px; border: 1px solid rgba(23, 14, 14, .72); border-radius: 50%; background: radial-gradient(circle at 31% 25%, #75647b 0 9%, #3a2637 18%, #1a1520 62%, #09080c 100%); box-shadow: inset 3px 3px 2px rgba(255, 255, 255, .18), 0 2px 2px rgba(46, 25, 18, .3); }
-    .cup-boba i:nth-child(3n) { transform: translateY(-7px) scale(.86); }
-    .cup-boba i:nth-child(4n) { transform: translateY(-14px) scale(.74); }
-    .cup-boba i:nth-child(5n) { transform: translateY(-22px) scale(.68); }
+    .cup-boba { position: absolute; z-index: 2; right: 8px; bottom: 7px; left: 8px; display: flex; flex-wrap: wrap; align-content: flex-end; justify-content: center; gap: 2px 4px; height: 52px; overflow: hidden; }
+    .cup-boba i { display: block; flex: 0 0 11px; width: 11px; height: 11px; border: 1px solid rgba(23, 14, 14, .72); border-radius: 50%; background: radial-gradient(circle at 31% 25%, #75647b 0 9%, #3a2637 18%, #1a1520 62%, #09080c 100%); box-shadow: inset 2px 2px 2px rgba(255, 255, 255, .18), 0 1px 2px rgba(46, 25, 18, .3); }
+    .cup-boba i:nth-child(3n) { transform: scale(.88); }
+    .cup-boba i:nth-child(4n) { transform: scale(.76); }
+    .cup-boba i:nth-child(5n) { transform: scale(.82); }
     .cream {
       position: absolute;
       z-index: 3;
@@ -331,15 +337,18 @@
       <section class="hero-copy" aria-labelledby="page-title">
         <p class="kicker">A little help for your next sip</p>
         <h1 id="page-title" aria-label="Gong Chat">
-          <span class="letter" data-depth="1.15" style="--rotation:-4deg">G</span>
-          <span class="letter" data-depth=".8" style="--rotation:2deg">o</span>
-          <span class="letter" data-depth="1.1" style="--rotation:4deg">n</span>
-          <span class="letter" data-depth=".9" style="--rotation:-2deg">g</span>
-          <span class="letter space" aria-hidden="true"></span>
-          <span class="letter" data-depth=".9" style="--rotation:3deg">C</span>
-          <span class="letter" data-depth="1.15" style="--rotation:-3deg">h</span>
-          <span class="letter" data-depth=".8" style="--rotation:4deg">a</span>
-          <span class="letter" data-depth="1" style="--rotation:-1deg">t</span>
+          <span class="title-line">
+            <span class="letter" data-depth="1.15" style="--rotation:-4deg">G</span>
+            <span class="letter" data-depth=".8" style="--rotation:2deg">o</span>
+            <span class="letter" data-depth="1.1" style="--rotation:4deg">n</span>
+            <span class="letter" data-depth=".9" style="--rotation:-2deg">g</span>
+          </span>
+          <span class="title-line">
+            <span class="letter" data-depth=".9" style="--rotation:3deg">C</span>
+            <span class="letter" data-depth="1.15" style="--rotation:-3deg">h</span>
+            <span class="letter" data-depth=".8" style="--rotation:4deg">a</span>
+            <span class="letter" data-depth="1" style="--rotation:-1deg">t</span>
+          </span>
         </h1>
         <p class="subtitle">Answer a few quick questions and discover the Gong cha drink that matches your mood, flavor cravings, and favorite toppings.</p>
         <a class="cta" href="chat.html">Find my drink</a>
