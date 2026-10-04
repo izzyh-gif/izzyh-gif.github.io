@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Global Health Trends Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+  <script>
+    // ============================================================
+    // BACKEND URL CONFIGURATION
+    // ============================================================
+    // After deploying to Render, replace the empty string below
+    // with your Render service URL, e.g.:
+    //   const BACKEND_URL = "https://health-data-dashboard.onrender.com";
+    //
+    // Leave it as an empty string "" to use relative paths, which
+    // works when running locally via `python app.py`.
+    // ============================================================
+    const BACKEND_URL = "";
+  </script>
+
+  <style>
+    :root {
+      --bg:           #f5f7fa;
+      --surface:      #ffffff;
+      --surface-2:    #f0f4f8;
+      --surface-3:    #e4eaf1;
+      --border:       rgba(0,0,0,.08);
+      --border-focus: rgba(59,130,246,.45);
+
+      --accent:       #3b82f6;
+      --accent-hover: #2563eb;
+      --accent-glow:  rgba(59,130,246,.18);
+
+      --text-primary:   #0f172a;
+      --text-secondary: #475569;
+      --text-muted:     #94a3b8;
+
+      --font: 'Inter', system-ui, sans-serif;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --shadow-card: 0 4px 24px rgba(0,0,0,.06);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      padding: 1.25rem 1.5rem;
+      background: linear-gradient(135deg, #1e3a5f, #2c5f8a);
+      color: #fff;
+    }
+    header h1 { margin: 0; font-size: 1.3rem; font-weight: 700; }
+    header p  { margin: .3rem 0 0; font-size: .85rem; color: #cfe3f7; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 1.25rem;
+      padding: 1.25rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; padding: 1rem; gap: 1rem; }
+      /* Controls panel becomes sticky at the top so it's reachable
+         without scrolling all the way back up on long result pages */
+      #controls-panel {
+        position: sticky;
+        top: .5rem;
+        z-index: 20;
+      }
+    }
+
+    @media (max-width: 480px) {
+      header { padding: 1rem; }
+      header h1 { font-size: 1.1rem; }
+      header p { font-size: .78rem; }
+      .layout { padding: .75rem; }
+      .panel { padding: .85rem; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      padding: 1.1rem;
+    }
+
+    .panel h2 {
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--text-muted);
+      margin: 0 0 .75rem;
+    }
+
+    label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin: 1rem 0 .35rem;
+    }
+    label:first-of-type { margin-top: 0; }
+
+    select, input[type="number"] {
+      width: 100%;
+      padding: .5rem .6rem;
+      font-family: var(--font);
+      font-size: .85rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      /* Prevents iOS Safari from auto-zooming the page on focus */
+      font-size: max(.85rem, 16px);
+    }
+
+    /* ============================================================
+       COUNTRY PICKER (touch-friendly checkbox dropdown, replaces
+       a native <select multiple> which is unusable on mobile)
+    ============================================================ */
+    .country-picker { position: relative; }
+
+    .country-picker-toggle {
+      width: 100%;
+      text-align: left;
+      padding: .55rem .6rem;
+      font-family: var(--font);
+      font-size: .85rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .5rem;
+      min-height: 42px; /* comfortable touch target */
+    }
+    .country-picker-toggle .chevron { color: var(--text-muted); font-size: .7rem; flex-shrink: 0; }
+
+    .country-picker-panel {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      z-index: 30;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 8px 28px rgba(0,0,0,.14);
+      padding: .6rem;
+    }
+    .country-picker-panel[hidden] { display: none; }
+
+    .country-search-input {
+      width: 100%;
+      padding: .5rem .6rem;
+      margin-bottom: .5rem;
+      font-family: var(--font);
+      font-size: max(.85rem, 16px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+    }
+
+    .country-picker-list {
+      max-height: 240px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .country-option {
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      padding: .5rem .3rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .85rem;
+      min-height: 36px; /* touch target */
+    }
+    .country-option:hover { background: var(--surface-2); }
+    .country-option input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      flex-shrink: 0;
+      accent-color: var(--accent);
+    }
+    .country-option .no-match { color: var(--text-muted); font-style: italic; }
+
+    .country-picker-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: .5rem;
+      padding-top: .5rem;
+      border-top: 1px solid var(--border);
+    }
+    .country-picker-actions button {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-family: var(--font);
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: .4rem .5rem;
+    }
+
+    .mode-tabs {
+      display: flex;
+      gap: .4rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .mode-tab {
+      flex: 1;
+      min-width: 90px;
+      padding: .55rem .4rem;
+      font-size: .78rem;
+      font-weight: 600;
+      text-align: center;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mode-tab.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .indicator-description {
+      margin-top: .6rem;
+      font-size: .76rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 440px;
+      margin-bottom: 1rem;
+    }
+    @media (max-width: 600px) {
+      .chart-wrap { height: 320px; }
+    }
+
+    .stat-row {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .stat-box {
+      flex: 1 1 140px;
+      min-width: 120px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: .75rem 1rem;
+    }
+    .stat-box .label { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; }
+    .stat-box .value { font-size: 1.3rem; font-weight: 700; margin-top: .2rem; }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    table {
+      width: 100%;
+      min-width: 320px;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: .7rem; letter-spacing: .4px; }
+    tr:hover td { background: var(--surface-2); }
+
+    .loading, .error, .empty {
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: .9rem;
+    }
+    .error { color: #b91c1c; }
+
+    .source-note {
+      font-size: .7rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+      line-height: 1.5;
+    }
+    .source-note a { color: var(--accent); text-decoration: none; }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: .72rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Global Health Trends Dashboard</h1>
+  <p>Comparative and statistical exploration of public health indicators from WHO and Our World in Data</p>
+</header>
+
+<div class="layout">
+
+  <!-- CONTROLS PANEL -->
+  <div class="panel" id="controls-panel">
+    <h2>Explore</h2>
+
+    <div class="mode-tabs">
+      <div class="mode-tab active" data-mode="trend">Trend</div>
+      <div class="mode-tab" data-mode="rankings">Rankings</div>
+      <div class="mode-tab" data-mode="correlation">Correlation</div>
+    </div>
+
+    <!-- Trend / Rankings: single indicator -->
+    <div id="single-indicator-controls">
+      <label for="indicator-select">Indicator</label>
+      <select id="indicator-select"></select>
+      <p class="indicator-description" id="indicator-description"></p>
+    </div>
+
+    <!-- Correlation: two indicators -->
+    <div id="dual-indicator-controls" style="display:none">
+      <label for="indicator-x-select">Indicator (X axis)</label>
+      <select id="indicator-x-select"></select>
+
+      <label for="indicator-y-select">Indicator (Y axis)</label>
+      <select id="indicator-y-select"></select>
+    </div>
+
+    <!-- Rankings only -->
+    <div id="rankings-controls" style="display:none">
+      <label for="year-select">Year</label>
+      <select id="year-select"></select>
+
+      <label for="top-n-input">Show top</label>
+      <input type="number" id="top-n-input" value="10" min="3" max="50" />
+
+      <label for="order-select">Order</label>
+      <select id="order-select">
+        <option value="desc">Highest first</option>
+        <option value="asc">Lowest first</option>
+      </select>
+    </div>
+
+    <!-- Correlation only -->
+    <div id="correlation-year-controls" style="display:none">
+      <label for="corr-year-select">Year (optional — leave blank to average all years)</label>
+      <select id="corr-year-select">
+        <option value="">All years (averaged)</option>
+      </select>
+    </div>
+
+    <!-- Trend / Correlation: country filter (touch-friendly checkbox dropdown) -->
+    <div id="country-filter-controls">
+      <label id="country-picker-label">Countries (leave empty for all)</label>
+      <div class="country-picker" id="country-picker">
+        <button type="button" class="country-picker-toggle" id="country-picker-toggle" aria-haspopup="listbox" aria-expanded="false">
+          <span id="country-picker-summary">All countries</span>
+          <span class="chevron">▾</span>
+        </button>
+        <div class="country-picker-panel" id="country-picker-panel" hidden>
+          <input type="text" class="country-search-input" id="country-search-input" placeholder="Search countries…" aria-label="Search countries" />
+          <div class="country-picker-list" id="country-picker-list" role="listbox" aria-multiselectable="true"></div>
+          <div class="country-picker-actions">
+            <button type="button" id="country-clear-btn">Clear selection</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="source-note">
+      Data sources: <a href="https://www.who.int/data/gho" target="_blank" rel="noopener">WHO Global Health Observatory</a>
+      and <a href="https://ourworldindata.org" target="_blank" rel="noopener">Our World in Data</a>.
+      Fetched live from each source's public API and cached server-side for one hour.
+    </p>
+  </div>
+
+  <!-- RESULTS PANEL -->
+  <div class="panel" id="results-panel">
+    <h2 id="results-title">Trend over time</h2>
+    <div id="results-content">
+      <div class="loading">Loading…</div>
+    </div>
+  </div>
+
+</div>
+
+<footer>Not medical advice. Data reflects each source's own methodology and reporting lag.</footer>
+
+<script>
+  // ============================================================
+  // STATE
+  // ============================================================
+  let INDICATORS = [];
+  let COUNTRIES = [];
+  let currentMode = "trend";
+  let chartInstance = null;
+
+  const COLORS = ["#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed", "#0891b2", "#be185d", "#4d7c0f"];
+
+  // ============================================================
+  // API HELPERS
+  // ============================================================
+  async function apiGet(path) {
+    const res = await fetch(`${BACKEND_URL}${path}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+  }
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  document.addEventListener("DOMContentLoaded", init);
+
+  async function init() {
+    bindModeTabs();
+    bindControlEvents();
+
+    try {
+      [INDICATORS, COUNTRIES] = await Promise.all([
+        apiGet("/api/indicators"),
+        apiGet("/api/countries"),
+      ]);
+    } catch (err) {
+      showError(`Could not reach the backend: ${err.message}. Is the Flask server running?`);
+      return;
+    }
+
+    populateIndicatorSelects();
+    populateCountrySelect();
+    populateYearSelects();
+    runQuery();
+  }
+
+  function bindModeTabs() {
+    document.querySelectorAll(".mode-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        currentMode = tab.dataset.mode;
+        updateControlVisibility();
+        runQuery();
+      });
+    });
+  }
+
+  function updateControlVisibility() {
+    document.getElementById("single-indicator-controls").style.display = currentMode === "correlation" ? "none" : "block";
+    document.getElementById("dual-indicator-controls").style.display = currentMode === "correlation" ? "block" : "none";
+    document.getElementById("rankings-controls").style.display = currentMode === "rankings" ? "block" : "none";
+    document.getElementById("correlation-year-controls").style.display = currentMode === "correlation" ? "block" : "none";
+    document.getElementById("country-filter-controls").style.display = currentMode === "rankings" ? "none" : "block";
+
+    const titles = {
+      trend: "Trend over time",
+      rankings: "Country rankings",
+      correlation: "Correlation between indicators",
+    };
+    document.getElementById("results-title").textContent = titles[currentMode];
+  }
+
+  function bindControlEvents() {
+    document.getElementById("indicator-select").addEventListener("change", () => {
+      updateIndicatorDescription();
+      runQuery();
+    });
+    document.getElementById("indicator-x-select").addEventListener("change", runQuery);
+    document.getElementById("indicator-y-select").addEventListener("change", runQuery);
+    document.getElementById("year-select").addEventListener("change", runQuery);
+    document.getElementById("top-n-input").addEventListener("change", runQuery);
+    document.getElementById("order-select").addEventListener("change", runQuery);
+    document.getElementById("corr-year-select").addEventListener("change", runQuery);
+    // Country picker change events are bound in bindCountryPickerEvents(),
+    // since checkboxes are rendered dynamically.
+  }
+
+  // ============================================================
+  // POPULATE CONTROLS (fully data-driven from the registry)
+  // ============================================================
+  function populateIndicatorSelects() {
+    const byCategory = {};
+    INDICATORS.forEach(ind => {
+      (byCategory[ind.category] ||= []).push(ind);
+    });
+
+    const buildOptions = () => {
+      let html = "";
+      Object.keys(byCategory).sort().forEach(cat => {
+        html += `<optgroup label="${cat}">`;
+        byCategory[cat].forEach(ind => {
+          html += `<option value="${ind.id}">${ind.label} (${ind.source})</option>`;
+        });
+        html += `</optgroup>`;
+      });
+      return html;
+    };
+
+    document.getElementById("indicator-select").innerHTML = buildOptions();
+    document.getElementById("indicator-x-select").innerHTML = buildOptions();
+    document.getElementById("indicator-y-select").innerHTML = buildOptions();
+
+    // Default X/Y to two different indicators if available
+    if (INDICATORS.length > 1) {
+      document.getElementById("indicator-y-select").selectedIndex = 1;
+    }
+
+    updateIndicatorDescription();
+  }
+
+  function updateIndicatorDescription() {
+    const id = document.getElementById("indicator-select").value;
+    const ind = INDICATORS.find(i => i.id === id);
+    document.getElementById("indicator-description").textContent = ind ? `${ind.description} (unit: ${ind.unit})` : "";
+  }
+
+  // ============================================================
+  // COUNTRY PICKER (checkbox dropdown — touch friendly)
+  // ============================================================
+  let selectedCountryCodes = new Set();
+
+  function populateCountrySelect() {
+    renderCountryList(COUNTRIES);
+    bindCountryPickerEvents();
+  }
+
+  function renderCountryList(countries) {
+    const list = document.getElementById("country-picker-list");
+    if (!countries.length) {
+      list.innerHTML = `<div class="country-option no-match">No matching countries</div>`;
+      return;
+    }
+    list.innerHTML = countries.map(c => `
+      <label class="country-option" role="option">
+        <input type="checkbox" value="${c.code}" ${selectedCountryCodes.has(c.code) ? "checked" : ""} />
+        ${c.name}
+      </label>
+    `).join("");
+
+    list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener("change", () => {
+        if (cb.checked) selectedCountryCodes.add(cb.value);
+        else selectedCountryCodes.delete(cb.value);
+        updateCountryPickerSummary();
+        runQuery();
+      });
+    });
+  }
+
+  function updateCountryPickerSummary() {
+    const summary = document.getElementById("country-picker-summary");
+    const n = selectedCountryCodes.size;
+    if (n === 0) {
+      summary.textContent = "All countries";
+    } else if (n <= 2) {
+      const names = COUNTRIES.filter(c => selectedCountryCodes.has(c.code)).map(c => c.name);
+      summary.textContent = names.join(", ");
+    } else {
+      summary.textContent = `${n} countries selected`;
+    }
+  }
+
+  function bindCountryPickerEvents() {
+    const toggle = document.getElementById("country-picker-toggle");
+    const panel = document.getElementById("country-picker-panel");
+    const searchInput = document.getElementById("country-search-input");
+    const clearBtn = document.getElementById("country-clear-btn");
+
+    toggle.addEventListener("click", () => {
+      const isOpen = !panel.hasAttribute("hidden");
+      if (isOpen) {
+        panel.setAttribute("hidden", "");
+        toggle.setAttribute("aria-expanded", "false");
+      } else {
+        panel.removeAttribute("hidden");
+        toggle.setAttribute("aria-expanded", "true");
+        searchInput.value = "";
+        renderCountryList(COUNTRIES);
+        searchInput.focus();
+      }
+    });
+
+    // Close when clicking outside the picker
+    document.addEventListener("click", (e) => {
+      if (!document.getElementById("country-picker").contains(e.target)) {
+        panel.setAttribute("hidden", "");
+        toggle.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    searchInput.addEventListener("input", () => {
+      const q = searchInput.value.trim().toLowerCase();
+      const filtered = q ? COUNTRIES.filter(c => c.name.toLowerCase().includes(q)) : COUNTRIES;
+      renderCountryList(filtered);
+    });
+
+    clearBtn.addEventListener("click", () => {
+      selectedCountryCodes.clear();
+      updateCountryPickerSummary();
+      renderCountryList(COUNTRIES.filter(c =>
+        c.name.toLowerCase().includes(searchInput.value.trim().toLowerCase())
+      ));
+      runQuery();
+    });
+  }
+
+  function populateYearSelects() {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let y = currentYear; y >= 1960; y--) years.push(y);
+
+    const yearSelect = document.getElementById("year-select");
+    yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
+    yearSelect.value = currentYear - 2; // recent year, data often lags
+
+    const corrYearSelect = document.getElementById("corr-year-select");
+    corrYearSelect.innerHTML += years.map(y => `<option value="${y}">${y}</option>`).join("");
+  }
+
+  function getSelectedCountries() {
+    return Array.from(selectedCountryCodes);
+  }
+
+  // ============================================================
+  // QUERY DISPATCH
+  // ============================================================
+  async function runQuery() {
+    showLoading();
+    try {
+      if (currentMode === "trend") await runTrend();
+      else if (currentMode === "rankings") await runRankings();
+      else if (currentMode === "correlation") await runCorrelation();
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  function showLoading() {
+    document.getElementById("results-content").innerHTML = `<div class="loading">Loading…</div>`;
+  }
+  function showError(message) {
+    document.getElementById("results-content").innerHTML = `<div class="error">⚠️ ${message}</div>`;
+  }
+
+  // ============================================================
+  // MODE: TREND
+  // ============================================================
+  async function runTrend() {
+    const indicatorId = document.getElementById("indicator-select").value;
+    const countries = getSelectedCountries();
+    const params = new URLSearchParams({ indicator: indicatorId });
+    if (countries.length) params.set("countries", countries.join(","));
+
+    const result = await apiGet(`/api/data?${params.toString()}`);
+    renderResultsShell();
+
+    if (!result.data.length) {
+      document.getElementById("results-content").querySelector(".chart-wrap").outerHTML =
+        `<div class="empty">No data available for this selection.</div>`;
+      return;
+    }
+
+    // Group by country, build one line series per country
+    const byCountry = {};
+    result.data.forEach(row => {
+      (byCountry[row.country_name] ||= []).push(row);
+    });
+
+    // Limit to a reasonable number of lines when "all countries" is selected
+    let countryNames = Object.keys(byCountry);
+    if (!countries.length && countryNames.length > 12) {
+      // Pick the 12 countries with the most recent data to keep the chart readable
+      countryNames = countryNames
+        .sort((a, b) => byCountry[b].length - byCountry[a].length)
+        .slice(0, 12);
+    }
+
+    const allYears = [...new Set(result.data.map(r => r.year))].sort((a, b) => a - b);
+
+    const datasets = countryNames.map((name, i) => {
+      const points = byCountry[name];
+      const byYear = Object.fromEntries(points.map(p => [p.year, p.value]));
+      return {
+        label: name,
+        data: allYears.map(y => byYear[y] ?? null),
+        borderColor: COLORS[i % COLORS.length],
+        backgroundColor: COLORS[i % COLORS.length],
+        spanGaps: true,
+        tension: 0.2,
+        pointRadius: 2,
+      };
+    });
+
+    drawChart("line", {
+      labels: allYears,
+      datasets,
+    }, {
+      scales: {
+        y: { title: { display: true, text: result.indicator.unit } },
+        x: { title: { display: true, text: "Year" } },
+      },
+    });
+
+    if (!countries.length && Object.keys(byCountry).length > 12) {
+      appendNote(`Showing 12 of ${Object.keys(byCountry).length} countries with the most data. Select specific countries to narrow this down.`);
+    }
+  }
+
+  // ============================================================
+  // MODE: RANKINGS
+  // ============================================================
+  async function runRankings() {
+    const indicatorId = document.getElementById("indicator-select").value;
+    const year = document.getElementById("year-select").value;
+    const topN = document.getElementById("top-n-input").value || 10;
+    const order = document.getElementById("order-select").value;
+
+    const params = new URLSearchParams({ indicator: indicatorId, year, top_n: topN, order });
+    const result = await apiGet(`/api/rankings?${params.toString()}`);
+
+    renderResultsShell();
+
+    if (!result.data.length) {
+      document.getElementById("results-content").querySelector(".chart-wrap").outerHTML =
+        `<div class="empty">No data available for ${year}. Try a different year.</div>`;
+      return;
+    }
+
+    drawChart("bar", {
+      labels: result.data.map(r => r.country_name),
+      datasets: [{
+        label: `${result.indicator.label} (${year})`,
+        data: result.data.map(r => r.value),
+        backgroundColor: COLORS[0],
+      }],
+    }, {
+      indexAxis: "y",
+      scales: {
+        x: { title: { display: true, text: result.indicator.unit } },
+      },
+      plugins: { legend: { display: false } },
+    });
+
+    appendTable(
+      ["Rank", "Country", result.indicator.unit],
+      result.data.map((r, i) => [i + 1, r.country_name, r.value.toFixed(2)])
+    );
+  }
+
+  // ============================================================
+  // MODE: CORRELATION
+  // ============================================================
+  async function runCorrelation() {
+    const idX = document.getElementById("indicator-x-select").value;
+    const idY = document.getElementById("indicator-y-select").value;
+    const year = document.getElementById("corr-year-select").value;
+    const countries = getSelectedCountries();
+
+    const params = new URLSearchParams({ indicator_x: idX, indicator_y: idY });
+    if (year) params.set("year", year);
+
+    const result = await apiGet(`/api/correlation?${params.toString()}`);
+    renderResultsShell();
+
+    let points = result.points;
+    if (countries.length) {
+      points = points.filter(p => countries.includes(p.country_code));
+    }
+
+    if (!points.length) {
+      document.getElementById("results-content").querySelector(".chart-wrap").outerHTML =
+        `<div class="empty">No overlapping country data for these two indicators${year ? ` in ${year}` : ""}.</div>`;
+      return;
+    }
+
+    drawChart("scatter", {
+      datasets: [{
+        label: `${result.indicator_x.label} vs ${result.indicator_y.label}`,
+        data: points.map(p => ({ x: p.x, y: p.y, country: p.country_name })),
+        backgroundColor: COLORS[0],
+      }],
+    }, {
+      scales: {
+        x: { title: { display: true, text: `${result.indicator_x.label} (${result.indicator_x.unit})` } },
+        y: { title: { display: true, text: `${result.indicator_y.label} (${result.indicator_y.unit})` } },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.raw.country}: (${ctx.raw.x.toFixed(2)}, ${ctx.raw.y.toFixed(2)})`,
+          },
+        },
+      },
+    });
+
+    const r = result.correlation;
+    const strength = r === null ? "N/A" : Math.abs(r) >= 0.7 ? "strong" : Math.abs(r) >= 0.4 ? "moderate" : "weak";
+    const direction = r === null ? "" : r > 0 ? "positive" : "negative";
+
+    appendStats([
+      { label: "Pearson correlation (r)", value: r === null ? "N/A" : r.toFixed(3) },
+      { label: "Relationship", value: r === null ? "N/A" : `${strength} ${direction}` },
+      { label: "Countries compared", value: result.n },
+    ]);
+  }
+
+  // ============================================================
+  // RENDER HELPERS
+  // ============================================================
+  function renderResultsShell() {
+    document.getElementById("results-content").innerHTML = `
+      <div id="stats-row"></div>
+      <div class="chart-wrap"><canvas id="main-chart"></canvas></div>
+      <div id="extra-content"></div>
+    `;
+  }
+
+  function drawChart(type, data, options) {
+    const ctx = document.getElementById("main-chart").getContext("2d");
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(ctx, {
+      type,
+      data,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        ...options,
+      },
+    });
+  }
+
+  function appendTable(headers, rows) {
+    const html = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead>
+          <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody>
+        </table>
+      </div>
+    `;
+    document.getElementById("extra-content").innerHTML = html;
+  }
+
+  function appendStats(stats) {
+    document.getElementById("stats-row").innerHTML = `
+      <div class="stat-row">
+        ${stats.map(s => `
+          <div class="stat-box">
+            <div class="label">${s.label}</div>
+            <div class="value">${s.value}</div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  function appendNote(text) {
+    document.getElementById("extra-content").innerHTML += `<p class="indicator-description">${text}</p>`;
+  }
+
+  // Set initial control visibility
+  updateControlVisibility();
+</script>
+
+</body>
+</html>
