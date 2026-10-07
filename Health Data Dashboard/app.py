@@ -137,7 +137,7 @@ def _validate_chat_payload(payload: object) -> tuple[dict | None, str | None]:
         if not isinstance(indicator, dict):
             return None, "Invalid chat request."
         cleaned = {}
-        for field in ("id", "label", "unit", "description", "source"):
+        for field in ("id", "label", "unit", "description", "source", "source_note"):
             value = indicator.get(field)
             if value is not None:
                 if not isinstance(value, str) or len(value) > 240:
@@ -325,6 +325,20 @@ def _load_indicator_or_404(indicator_id: str):
     return df, None
 
 
+def _indicator_payload(indicator_id: str, df) -> dict:
+    """Return indicator metadata annotated with the source actually used."""
+    metadata = dict(get_indicator(indicator_id))
+    sources = sorted({str(source) for source in df.get("source", []).dropna()}) if "source" in df else []
+    if sources:
+        metadata["data_source"] = sources[0] if len(sources) == 1 else sources
+        if sources[0] != metadata.get("source"):
+            metadata["source_note"] = (
+                f"Primary {metadata.get('source')} data was unavailable; "
+                f"this result uses {sources[0]} data."
+            )
+    return metadata
+
+
 # ============================================================
 # ROUTES — static frontend
 # ============================================================
@@ -420,7 +434,7 @@ def api_data():
         year_max=_parse_int_param("year_max"),
     )
     return jsonify({
-        "indicator": get_indicator(indicator_id),
+        "indicator": _indicator_payload(indicator_id, df),
         "data": _df_to_records(df),
     })
 
@@ -445,7 +459,7 @@ def api_rankings():
 
     ranked = analysis.rankings(df, year=year, top_n=top_n, ascending=ascending)
     return jsonify({
-        "indicator": get_indicator(indicator_id),
+        "indicator": _indicator_payload(indicator_id, df),
         "year": year,
         "data": _df_to_records(ranked),
     })
@@ -465,7 +479,7 @@ def api_trend():
     df = analysis.filter_data(df, countries=_parse_countries_param())
     trend = analysis.year_over_year_change(df)
     return jsonify({
-        "indicator": get_indicator(indicator_id),
+        "indicator": _indicator_payload(indicator_id, df),
         "data": _df_to_records(trend),
     })
 
@@ -492,8 +506,8 @@ def api_correlation():
     result = analysis.correlate_indicators(df_x, df_y, year=year)
 
     return jsonify({
-        "indicator_x": get_indicator(id_x),
-        "indicator_y": get_indicator(id_y),
+        "indicator_x": _indicator_payload(id_x, df_x),
+        "indicator_y": _indicator_payload(id_y, df_y),
         "year": year,
         **result,
     })

@@ -14,6 +14,7 @@ from memory instead of re-fetching every time.
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 
@@ -23,6 +24,7 @@ from indicators import get_indicator
 from data_sources import who_client, owid_client
 
 CACHE_TTL_SECONDS = 60 * 60  # 1 hour
+logger = logging.getLogger(__name__)
 
 _cache: dict[str, tuple[float, pd.DataFrame]] = {}
 _cache_lock = threading.Lock()
@@ -54,7 +56,22 @@ def get_indicator_data(indicator_id: str) -> pd.DataFrame:
     if fetch_fn is None:
         raise ValueError(f"No client registered for source '{entry['source']}'")
 
-    df = fetch_fn(entry["source_code"], indicator_id)
+    try:
+        df = fetch_fn(entry["source_code"], indicator_id)
+    except Exception as primary_error:
+        fallback_source = entry.get("fallback_source")
+        fallback_code = entry.get("fallback_source_code")
+        fallback_fn = _SOURCE_CLIENTS.get(fallback_source)
+        if not fallback_fn or not fallback_code:
+            raise
+        logger.warning(
+            "Primary %s source failed for %s; trying %s fallback: %s",
+            entry["source"], indicator_id, fallback_source, primary_error,
+        )
+        try:
+            df = fallback_fn(fallback_code, indicator_id)
+        except Exception as fallback_error:
+            raise primary_error from fallback_error
 
     with _cache_lock:
         _cache[indicator_id] = (time.time(), df)

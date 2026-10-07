@@ -33,6 +33,9 @@ INDICATORS = [
         "unit": "years",
         "source": "WHO",
         "source_code": "WHOSIS_000001",
+        "fallback_source": "OWID",
+        "fallback_source_code": "life-expectancy",
+        "source_note": "Uses WHO GHO when available; falls back to OWID if the WHO gateway is unavailable.",
         "description": "Average number of years a newborn is expected to live, both sexes combined.",
     },
     {
