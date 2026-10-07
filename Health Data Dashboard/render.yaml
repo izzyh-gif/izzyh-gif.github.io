@@ -12,8 +12,8 @@
 #        https://health-data-dashboard-xxxx.onrender.com
 #   6. Paste that URL into BACKEND_URL in index.html
 #
-# No API keys are required -- WHO and OWID are both public, unauthenticated
-# data sources.
+# WHO and OWID are public sources; chat uses OPENAI_API_KEY configured in
+# Render's environment and never stored in this repository.
 # ============================================================
 
 services:
@@ -24,6 +24,10 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
     envVars:
+      - key: OPENAI_API_KEY
+        sync: false             # set this secret in the Render dashboard
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
       - key: RENDER
         value: "true"            # tells app.py it's running on Render (disables debug)
     plan: free
