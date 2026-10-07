@@ -20,9 +20,33 @@ import functools
 
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 BASE_URL = "https://ghoapi.azureedge.net/api"
-REQUEST_TIMEOUT = 15  # seconds
+REQUEST_TIMEOUT = (10, 45)  # connect timeout, read timeout in seconds
+
+
+def _build_session() -> requests.Session:
+    """Create a GET-only session that retries transient WHO gateway failures."""
+    retry = Retry(
+        total=4,
+        connect=4,
+        read=4,
+        status=4,
+        backoff_factor=1.0,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"GET"}),
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session = requests.Session()
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+
+HTTP = _build_session()
 
 # WHO's "both sexes" / "total" dimension codes. We filter to these so that
 # indicators with sex/age/wealth breakdowns collapse to one row per
@@ -40,7 +64,7 @@ def get_country_lookup() -> dict:
     Public: also used by app.py to serve GET /api/countries.
     """
     url = f"{BASE_URL}/DIMENSION/COUNTRY/DimensionValues"
-    resp = requests.get(url, timeout=REQUEST_TIMEOUT)
+    resp = HTTP.get(url, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
     values = resp.json().get("value", [])
     return {row["Code"]: row["Title"] for row in values}
@@ -58,7 +82,7 @@ def fetch_indicator(source_code: str, indicator_id: str) -> pd.DataFrame:
     Returns a DataFrame with columns matching schema.NORMALIZED_COLUMNS.
     """
     url = f"{BASE_URL}/{source_code}"
-    resp = requests.get(url, timeout=REQUEST_TIMEOUT)
+    resp = HTTP.get(url, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
     rows = resp.json().get("value", [])
 
