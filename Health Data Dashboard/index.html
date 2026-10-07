@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
   <script>
     // ============================================================
@@ -21,6 +23,9 @@
     // works when running locally via `python app.py`.
     // ============================================================
     const BACKEND_URL = "https://health-data-dashboard-21rw.onrender.com";
+    const ZOOM_PLUGIN = window.ChartZoom || window["chartjs-plugin-zoom"];
+    const ZOOM_AVAILABLE = Boolean(ZOOM_PLUGIN);
+    if (ZOOM_AVAILABLE) Chart.register(ZOOM_PLUGIN);
   </script>
 
   <style>
@@ -261,6 +266,28 @@
       height: 440px;
       margin-bottom: 1rem;
     }
+    .chart-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+      margin: -.35rem 0 .65rem;
+      color: var(--text-muted);
+      font-size: .72rem;
+    }
+    .chart-toolbar[hidden] { display: none; }
+    .reset-zoom {
+      flex-shrink: 0;
+      padding: .35rem .6rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .reset-zoom:hover, .reset-zoom:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
     @media (max-width: 600px) {
       .chart-wrap { height: 320px; }
     }
@@ -486,8 +513,8 @@
 
   <!-- CHAT PANEL -->
   <section class="panel chat-panel" id="chat-panel" aria-labelledby="chat-title">
-    <h2 id="chat-title">Ask about this view</h2>
-    <p class="chat-intro">Questions are answered only from the indicators, filters, and visible rows or points currently shown above.</p>
+    <h2 id="chat-title">Ask about the dashboard data</h2>
+    <p class="chat-intro">Ask questions about the selected indicators and filters. Answers use the full API data available for this selection, not just the currently visible chart rows.</p>
     <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-label="Chat messages">
       <div class="chat-message assistant">Ask a question about the graph or table above.</div>
     </div>
@@ -621,7 +648,7 @@
       appendChatMessage("user", message);
       input.value = "";
       submit.disabled = true;
-      setChatStatus("Checking the visible dashboard data…");
+      setChatStatus("Loading full API data for this selection…");
 
       try {
         const response = await apiPost("/api/chat", {
@@ -629,14 +656,13 @@
           mode: currentMode,
           indicators: getChatIndicators(),
           filters: getChatFilters(),
-          snapshot: visibleSnapshot,
           history: historyForRequest,
         });
         appendChatMessage("assistant", response.answer);
         chatHistory.push({ role: "user", content: message });
         chatHistory.push({ role: "assistant", content: response.answer });
         chatHistory = chatHistory.slice(-8);
-        setChatStatus("Answer based on the visible snapshot.");
+        setChatStatus("Answer based on the selected API data.");
       } catch (err) {
         setChatStatus(err.message || "The chat service is temporarily unavailable.");
       } finally {
@@ -1033,8 +1059,13 @@
   // RENDER HELPERS
   // ============================================================
   function renderResultsShell() {
+    const zoomable = ZOOM_AVAILABLE && currentMode !== "rankings";
     document.getElementById("results-content").innerHTML = `
       <div id="stats-row"></div>
+      <div class="chart-toolbar" ${zoomable ? "" : "hidden"}>
+        <span>${currentMode === "correlation" ? "Scroll or pinch to zoom both axes; drag to zoom a region; hold Shift to pan." : "Scroll or pinch to zoom the timeline; drag to zoom a range; hold Shift to pan."}</span>
+        <button type="button" class="reset-zoom" id="reset-zoom">Reset zoom</button>
+      </div>
       <div class="chart-wrap"><canvas id="main-chart"></canvas></div>
       <div id="extra-content"></div>
     `;
@@ -1043,15 +1074,36 @@
   function drawChart(type, data, options) {
     const ctx = document.getElementById("main-chart").getContext("2d");
     if (chartInstance) chartInstance.destroy();
+    const { plugins: optionPlugins = {}, ...otherOptions } = options;
+    const zoomMode = currentMode === "correlation" ? "xy" : "x";
     chartInstance = new Chart(ctx, {
       type,
       data,
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        ...options,
+        ...otherOptions,
+        plugins: {
+          ...optionPlugins,
+          ...(ZOOM_AVAILABLE && currentMode !== "rankings" ? {
+            zoom: {
+              pan: { enabled: true, mode: zoomMode, modifierKey: "shift" },
+              zoom: {
+                wheel: { enabled: true },
+                pinch: { enabled: true },
+                drag: { enabled: true },
+                mode: zoomMode,
+              },
+            },
+          } : {}),
+        },
       },
     });
+
+    const resetButton = document.getElementById("reset-zoom");
+    if (resetButton && ZOOM_AVAILABLE) {
+      resetButton.addEventListener("click", () => chartInstance.resetZoom());
+    }
   }
 
   function appendTable(headers, rows) {
