@@ -22,7 +22,7 @@ services:
     runtime: python
     rootDir: Health Data Dashboard     # folder containing app.py
     buildCommand: pip install -r requirements.txt
-    startCommand: python app.py
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
     envVars:
       - key: RENDER
         value: "true"            # tells app.py it's running on Render (disables debug)

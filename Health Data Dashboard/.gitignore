@@ -1,0 +1,22 @@
+# Private API keys and local secrets
+private.txt
+**/private.txt
+.env
+.env.*
+
+# Python artifacts
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# macOS and editor files
+.DS_Store
+**/.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
