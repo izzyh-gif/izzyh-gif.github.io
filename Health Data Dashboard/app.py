@@ -482,7 +482,7 @@ def _ask_chat_model(chat: dict) -> dict:
         "the authoritative row is absent or its value is explicitly null. Provide the user with the next best information, such as the next row or next year's data.\n\n"
         "You must return a JSON object with exactly these top-level fields:\n"
         '{"answer":"...","dashboard_action":null}\n'
-        "If the user explicitly asks to change the graph or dashboard, set dashboard_action "
+        "If the user explicitly asks to change the graph or dashboard or asks to show or display certain information in their query, set dashboard_action "
         "to one of these validated forms:\n"
         '- Trend: {"mode":"trend","indicator_id":"...","year_min":2000,"year_max":2020}\n'
         '- Rankings: {"mode":"rankings","indicator_id":"...","year":2022,"rank_start":10,"rank_end":50}\n'

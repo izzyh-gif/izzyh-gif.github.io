@@ -711,6 +711,15 @@
     });
   }
 
+  function setDashboardControl(id, value) {
+    const control = document.getElementById(id);
+    if (!control || value == null) return false;
+    const text = String(value);
+    if (control.tagName === "SELECT" && !Array.from(control.options).some(option => option.value === text)) return false;
+    control.value = text;
+    return true;
+  }
+
   function applyDashboardAction(action) {
     if (!action || !["trend", "rankings", "correlation"].includes(action.mode)) return false;
     currentMode = action.mode;
@@ -719,22 +728,22 @@
     if (currentMode === "correlation") {
       const x = document.getElementById("indicator-x-select");
       const y = document.getElementById("indicator-y-select");
-      if (action.indicator_x_id) x.value = action.indicator_x_id;
-      if (action.indicator_y_id) y.value = action.indicator_y_id;
+      if (action.indicator_x_id) setDashboardControl("indicator-x-select", action.indicator_x_id);
+      if (action.indicator_y_id) setDashboardControl("indicator-y-select", action.indicator_y_id);
       if (!x.value || !y.value || x.value === y.value) return false;
-      if (action.year != null) document.getElementById("corr-year-select").value = String(action.year);
+      if (action.year != null) setDashboardControl("corr-year-select", action.year);
     } else {
       const select = document.getElementById("indicator-select");
-      if (action.indicator_id) select.value = action.indicator_id;
+      if (action.indicator_id) setDashboardControl("indicator-select", action.indicator_id);
       if (!select.value) return false;
       if (currentMode === "trend") {
-        if (action.year_min != null) document.getElementById("trend-year-min").value = action.year_min;
-        if (action.year_max != null) document.getElementById("trend-year-max").value = action.year_max;
+        if (action.year_min != null) setDashboardControl("trend-year-min", action.year_min);
+        if (action.year_max != null) setDashboardControl("trend-year-max", action.year_max);
       } else {
-        if (action.year != null) document.getElementById("year-select").value = String(action.year);
-        if (action.rank_start != null) document.getElementById("rank-start-input").value = action.rank_start;
-        if (action.rank_end != null) document.getElementById("rank-end-input").value = action.rank_end;
-        if (action.order) document.getElementById("order-select").value = action.order;
+        if (action.year != null) setDashboardControl("year-select", action.year);
+        if (action.rank_start != null) setDashboardControl("rank-start-input", action.rank_start);
+        if (action.rank_end != null) setDashboardControl("rank-end-input", action.rank_end);
+        if (action.order) setDashboardControl("order-select", action.order);
       }
       updateIndicatorDescription();
     }
