@@ -63,3 +63,9 @@ Support all common groups based on what you listed as well as the ones in this O
 
 is this issue preventable? "This selection contains too much data for one chat request. Select specific countries or indicators and try again."
 
+Test your changes on the following prompts and make sure the graph is changed. Iterate on the code until it works accurately.
+Show ranks 5 through 15 for health expenditure per capita in 2024.
+Show life expectancy from 2000 to 2020.
+Show burden of disease for Scandinavia
+
+The chatbot says this even though they are available: The data for ranks 5 through 10 in life expectancy is not available. The current ranking only includes data for ranks 1 through 4 for the year 2023. Would you like to see the available ranks or a different range?
