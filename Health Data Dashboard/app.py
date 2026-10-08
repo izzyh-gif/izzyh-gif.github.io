@@ -293,6 +293,26 @@ def _chat_records(df) -> list[dict]:
     return records
 
 
+def _chat_data_summary(item: dict, df, selected_year: int | None) -> dict:
+    """Summarize oversized API data without losing the selected result."""
+    summary = {
+        "indicator": item["indicator"],
+        "indicator_id": item["indicator_id"],
+        "row_count": int(len(df)),
+        "country_count": int(df["country_code"].nunique()) if not df.empty else 0,
+        "year_min": int(df["year"].min()) if not df.empty else None,
+        "year_max": int(df["year"].max()) if not df.empty else None,
+    }
+    if not df.empty:
+        summary["value_min"] = float(df["value"].min())
+        summary["value_max"] = float(df["value"].max())
+    if selected_year is not None:
+        year_df = df[df["year"] == selected_year].sort_values("value", ascending=False).head(25)
+        summary["selected_year"] = selected_year
+        summary["selected_year_top_records"] = _chat_records(year_df)
+    return summary
+
+
 def _build_server_chat_context(chat: dict) -> dict:
     """Load full selected API data on the server and build model context."""
     filters = chat["context"]["filters"]
@@ -348,6 +368,16 @@ def _build_server_chat_context(chat: dict) -> dict:
         )
 
     serialized = json.dumps(context, separators=(",", ":"), ensure_ascii=True)
+    if len(serialized) > CHAT_MAX_CONTEXT_CHARS:
+        context["context_note"] = (
+            "Full raw records exceeded the prompt budget. Use selected_ranking or "
+            "selected_correlation as authoritative and use the compact API summaries."
+        )
+        context["api_data"] = [
+            _chat_data_summary(item, get_indicator_data(item["indicator_id"]), filters.get("year"))
+            for item in api_data
+        ]
+        serialized = json.dumps(context, separators=(",", ":"), ensure_ascii=True)
     if len(serialized) > CHAT_MAX_CONTEXT_CHARS:
         raise ChatContextTooLarge(
             "This selection contains too much data for one chat request. "
@@ -449,7 +479,7 @@ def _ask_chat_model(chat: dict) -> dict:
         "rank range for the requested year and order. Use every row in SELECTED_RANKING, "
         "including rows after rank 10. If a row has a numeric value, report it; never replace "
         "a present numeric value with 'Data not available'. Only say data is unavailable when "
-        "the authoritative row is absent or its value is explicitly null.\n\n"
+        "the authoritative row is absent or its value is explicitly null. Provide the user with the next best information, such as the next row or next year's data.\n\n"
         "You must return a JSON object with exactly these top-level fields:\n"
         '{"answer":"...","dashboard_action":null}\n'
         "If the user explicitly asks to change the graph or dashboard, set dashboard_action "
