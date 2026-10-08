@@ -1055,6 +1055,8 @@
     drawChart("bar", {
       labels: result.data.map(r => r.country_name),
       datasets: [{
+        label: `${result.indicator.label} (${year})`,
+        data: result.data.map(r => r.value),
         backgroundColor: result.data.map(r => countryColor(r.country_name)),
       }],
     }, {
