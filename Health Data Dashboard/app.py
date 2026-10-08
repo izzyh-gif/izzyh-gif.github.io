@@ -41,7 +41,7 @@ except ImportError:  # pragma: no cover - dependency is installed in deployment
 import analysis
 from data_sources.fetcher import get_indicator_data
 from data_sources.who_client import get_country_lookup as who_country_lookup
-from indicators import get_indicator, list_indicators
+from indicators import INDICATORS, get_indicator, list_indicators
 
 # ============================================================
 # CONFIGURATION
@@ -462,6 +462,45 @@ def _validate_dashboard_action(raw_action: object) -> dict | None:
     return action
 
 
+def _deterministic_dashboard_action(message: str, context: dict) -> dict | None:
+    """Extract unambiguous rank/year dashboard commands without using the model."""
+    text = message.lower()
+    rank_match = re.search(r"\branks?\s+(\d+)\s*(?:to|through|-)\s*(\d+)\b", text)
+    year_range = re.search(r"\b(?:between|from)\s+(19\d{2}|20\d{2})\s+(?:and|to)\s+(19\d{2}|20\d{2})\b", text)
+    year_match = re.search(r"\bin\s+(19\d{2}|20\d{2})\b", text)
+
+    indicator_id = None
+    for entry in sorted(INDICATORS, key=lambda item: len(item["label"]), reverse=True):
+        aliases = (entry["id"].replace("_", " "), entry["label"].lower())
+        if any(alias in text for alias in aliases):
+            indicator_id = entry["id"]
+            break
+    if indicator_id is None and context["indicators"]:
+        indicator_id = context["indicators"][0]["id"]
+
+    if rank_match:
+        start, end = map(int, rank_match.groups())
+        if start < 1 or end < start or end > 1000 or indicator_id is None:
+            return None
+        return {
+            "mode": "rankings",
+            "indicator_id": indicator_id,
+            "year": int(year_match.group(1)) if year_match else context["filters"].get("year"),
+            "rank_start": start,
+            "rank_end": end,
+        }
+    if year_range and ("trend" in text or "over time" in text or "between" in text or "from" in text):
+        if indicator_id is None:
+            return None
+        return {
+            "mode": "trend",
+            "indicator_id": indicator_id,
+            "year_min": int(year_range.group(1)),
+            "year_max": int(year_range.group(2)),
+        }
+    return None
+
+
 def _ask_chat_model(chat: dict) -> dict:
     """Ask OpenAI for a safe answer and an optional dashboard action."""
     api_key = _openai_api_key()
@@ -643,6 +682,17 @@ def api_chat():
     chat, error = _validate_chat_payload(payload)
     if error:
         return _chat_error(error, 400)
+
+    try:
+        action = _deterministic_dashboard_action(chat["message"], chat["context"])
+        if action:
+            return jsonify({
+                "answer": "I’ll update the dashboard to match that request.",
+                "dashboard_action": action,
+                "scope": _chat_scope(chat["context"]),
+            })
+    except Exception:
+        app.logger.exception("Deterministic dashboard action parsing failed")
 
     try:
         chat["context"] = _build_server_chat_context(chat)
