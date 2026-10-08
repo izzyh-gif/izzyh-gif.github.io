@@ -30,20 +30,20 @@
 
   <style>
     :root {
-      --bg:           #f5f7fa;
-      --surface:      #ffffff;
-      --surface-2:    #f0f4f8;
-      --surface-3:    #e4eaf1;
-      --border:       rgba(0,0,0,.08);
-      --border-focus: rgba(59,130,246,.45);
+      --bg:           #aab9cf;
+      --surface:      #c7d59f;
+      --surface-2:    #8693ab;
+      --surface-3:    #637074;
+      --border:       rgba(33,34,39,.16);
+      --border-focus: rgba(99,112,116,.55);
 
-      --accent:       #3b82f6;
-      --accent-hover: #2563eb;
-      --accent-glow:  rgba(59,130,246,.18);
+      --accent:       #637074;
+      --accent-hover: #212227;
+      --accent-glow:  rgba(99,112,116,.22);
 
-      --text-primary:   #0f172a;
-      --text-secondary: #475569;
-      --text-muted:     #94a3b8;
+      --text-primary:   #212227;
+      --text-secondary: #637074;
+      --text-muted:     #637074;
 
       --font: 'Inter', system-ui, sans-serif;
       --radius: 14px;
@@ -62,7 +62,7 @@
 
     header {
       padding: 1.25rem 1.5rem;
-      background: linear-gradient(135deg, #1e3a5f, #2c5f8a);
+      background: linear-gradient(135deg, var(--text-primary), var(--surface-3));
       color: #fff;
     }
     header h1 { margin: 0; font-size: 1.3rem; font-weight: 700; }
@@ -320,8 +320,8 @@
       font-size: .82rem;
     }
     th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
-    th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: .7rem; letter-spacing: .4px; }
-    tr:hover td { background: var(--surface-2); }
+    .country-key { display: inline-flex; align-items: center; gap: .45rem; }
+    .country-swatch { width: .7rem; height: .7rem; flex: 0 0 .7rem; border-radius: 50%; background: var(--country-color); box-shadow: 0 0 0 2px rgba(33,34,39,.12); }
 
     .loading, .error, .empty {
       padding: 2rem;
@@ -455,13 +455,25 @@
       <select id="indicator-y-select"></select>
     </div>
 
+    <!-- Trend year range -->
+    <div id="trend-year-controls">
+      <label for="trend-year-min">From year</label>
+      <input type="number" id="trend-year-min" min="1900" max="2100" placeholder="Earliest" />
+
+      <label for="trend-year-max">To year</label>
+      <input type="number" id="trend-year-max" min="1900" max="2100" placeholder="Latest" />
+    </div>
+
     <!-- Rankings only -->
     <div id="rankings-controls" style="display:none">
       <label for="year-select">Year</label>
       <select id="year-select"></select>
 
-      <label for="top-n-input">Show top</label>
-      <input type="number" id="top-n-input" value="10" min="3" max="50" />
+      <label for="rank-start-input">Rank from</label>
+      <input type="number" id="rank-start-input" value="1" min="1" max="1000" />
+
+      <label for="rank-end-input">Rank to</label>
+      <input type="number" id="rank-end-input" value="10" min="1" max="1000" />
 
       <label for="order-select">Order</label>
       <select id="order-select">
@@ -541,7 +553,19 @@
   let visibleSnapshot = { rows: [], points: [], statistics: [] };
   let chatHistory = [];
 
-  const COLORS = ["#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed", "#0891b2", "#be185d", "#4d7c0f"];
+  const COUNTRY_COLORS = [
+    "#8693ab", "#c7d59f", "#212227", "#637074", "#aab9cf",
+    "#64718a", "#9eaf78", "#45474d", "#536064", "#8c9ab2",
+    "#6f7d98", "#b2c48c", "#303237", "#718084", "#c0cde0",
+  ];
+  const countryColorMap = new Map();
+
+  function countryColor(countryName) {
+    if (!countryColorMap.has(countryName)) {
+      countryColorMap.set(countryName, COUNTRY_COLORS[countryColorMap.size % COUNTRY_COLORS.length]);
+    }
+    return countryColorMap.get(countryName);
+  }
 
   // ============================================================
   // API HELPERS
@@ -607,6 +631,7 @@
   function updateControlVisibility() {
     document.getElementById("single-indicator-controls").style.display = currentMode === "correlation" ? "none" : "block";
     document.getElementById("dual-indicator-controls").style.display = currentMode === "correlation" ? "block" : "none";
+    document.getElementById("trend-year-controls").style.display = currentMode === "trend" ? "block" : "none";
     document.getElementById("rankings-controls").style.display = currentMode === "rankings" ? "block" : "none";
     document.getElementById("correlation-year-controls").style.display = currentMode === "correlation" ? "block" : "none";
     document.getElementById("country-filter-controls").style.display = currentMode === "rankings" ? "none" : "block";
@@ -627,7 +652,10 @@
     document.getElementById("indicator-x-select").addEventListener("change", runQuery);
     document.getElementById("indicator-y-select").addEventListener("change", runQuery);
     document.getElementById("year-select").addEventListener("change", runQuery);
-    document.getElementById("top-n-input").addEventListener("change", runQuery);
+    document.getElementById("trend-year-min").addEventListener("change", runQuery);
+    document.getElementById("trend-year-max").addEventListener("change", runQuery);
+    document.getElementById("rank-start-input").addEventListener("change", runQuery);
+    document.getElementById("rank-end-input").addEventListener("change", runQuery);
     document.getElementById("order-select").addEventListener("change", runQuery);
     document.getElementById("corr-year-select").addEventListener("change", runQuery);
     // Country picker change events are bound in bindCountryPickerEvents(),
@@ -662,7 +690,13 @@
         chatHistory.push({ role: "user", content: message });
         chatHistory.push({ role: "assistant", content: response.answer });
         chatHistory = chatHistory.slice(-8);
-        setChatStatus("Answer based on the selected API data.");
+        if (response.dashboard_action) {
+          applyDashboardAction(response.dashboard_action);
+          setChatStatus("Dashboard updated from your request.");
+          await runQuery();
+        } else {
+          setChatStatus("Answer based on the selected API data.");
+        }
       } catch (err) {
         setChatStatus(err.message || "The chat service is temporarily unavailable.");
       } finally {
@@ -670,6 +704,43 @@
         input.focus();
       }
     });
+  }
+
+  function applyDashboardAction(action) {
+    if (!action || !["trend", "rankings", "correlation"].includes(action.mode)) return false;
+    currentMode = action.mode;
+    document.querySelectorAll(".mode-tab").forEach(tab => tab.classList.toggle("active", tab.dataset.mode === currentMode));
+
+    if (currentMode === "correlation") {
+      const x = document.getElementById("indicator-x-select");
+      const y = document.getElementById("indicator-y-select");
+      if (action.indicator_x_id) x.value = action.indicator_x_id;
+      if (action.indicator_y_id) y.value = action.indicator_y_id;
+      if (!x.value || !y.value || x.value === y.value) return false;
+      if (action.year != null) document.getElementById("corr-year-select").value = String(action.year);
+    } else {
+      const select = document.getElementById("indicator-select");
+      if (action.indicator_id) select.value = action.indicator_id;
+      if (!select.value) return false;
+      if (currentMode === "trend") {
+        if (action.year_min != null) document.getElementById("trend-year-min").value = action.year_min;
+        if (action.year_max != null) document.getElementById("trend-year-max").value = action.year_max;
+      } else {
+        if (action.year != null) document.getElementById("year-select").value = String(action.year);
+        if (action.rank_start != null) document.getElementById("rank-start-input").value = action.rank_start;
+        if (action.rank_end != null) document.getElementById("rank-end-input").value = action.rank_end;
+        if (action.order) document.getElementById("order-select").value = action.order;
+      }
+      updateIndicatorDescription();
+    }
+
+    if (Array.isArray(action.country_codes)) {
+      selectedCountryCodes = new Set(action.country_codes);
+      updateCountryPickerSummary();
+      renderCountryList(COUNTRIES);
+    }
+    updateControlVisibility();
+    return true;
   }
 
   function appendChatMessage(role, text) {
@@ -702,9 +773,15 @@
 
   function getChatFilters() {
     const filters = { countries: getSelectedCountries() };
-    if (currentMode === "rankings") {
+    if (currentMode === "trend") {
+      const yearMin = document.getElementById("trend-year-min").value;
+      const yearMax = document.getElementById("trend-year-max").value;
+      if (yearMin) filters.year_min = Number(yearMin);
+      if (yearMax) filters.year_max = Number(yearMax);
+    } else if (currentMode === "rankings") {
       filters.year = Number(document.getElementById("year-select").value);
-      filters.top_n = Number(document.getElementById("top-n-input").value || 10);
+      filters.rank_start = Number(document.getElementById("rank-start-input").value || 1);
+      filters.rank_end = Number(document.getElementById("rank-end-input").value || filters.rank_start + 9);
       filters.order = document.getElementById("order-select").value;
     } else if (currentMode === "correlation") {
       const year = document.getElementById("corr-year-select").value;
@@ -888,6 +965,10 @@
     const countries = getSelectedCountries();
     const params = new URLSearchParams({ indicator: indicatorId });
     if (countries.length) params.set("countries", countries.join(","));
+    const yearMin = document.getElementById("trend-year-min").value;
+    const yearMax = document.getElementById("trend-year-max").value;
+    if (yearMin) params.set("year_min", yearMin);
+    if (yearMax) params.set("year_max", yearMax);
 
     const result = await apiGet(`/api/data?${params.toString()}`);
     renderResultsShell();
@@ -926,8 +1007,8 @@
       return {
         label: name,
         data: allYears.map(y => byYear[y] ?? null),
-        borderColor: COLORS[i % COLORS.length],
-        backgroundColor: COLORS[i % COLORS.length],
+        borderColor: countryColor(name),
+        backgroundColor: countryColor(name),
         spanGaps: true,
         tension: 0.2,
         pointRadius: 2,
@@ -955,10 +1036,11 @@
   async function runRankings() {
     const indicatorId = document.getElementById("indicator-select").value;
     const year = document.getElementById("year-select").value;
-    const topN = document.getElementById("top-n-input").value || 10;
+    const rankStart = document.getElementById("rank-start-input").value || 1;
+    const rankEnd = document.getElementById("rank-end-input").value || rankStart + 9;
     const order = document.getElementById("order-select").value;
 
-    const params = new URLSearchParams({ indicator: indicatorId, year, top_n: topN, order });
+    const params = new URLSearchParams({ indicator: indicatorId, year, rank_start: rankStart, rank_end: rankEnd, order });
     const result = await apiGet(`/api/rankings?${params.toString()}`);
 
     renderResultsShell();
@@ -973,9 +1055,7 @@
     drawChart("bar", {
       labels: result.data.map(r => r.country_name),
       datasets: [{
-        label: `${result.indicator.label} (${year})`,
-        data: result.data.map(r => r.value),
-        backgroundColor: COLORS[0],
+        backgroundColor: result.data.map(r => countryColor(r.country_name)),
       }],
     }, {
       indexAxis: "y",
@@ -987,7 +1067,7 @@
 
     appendTable(
       ["Rank", "Country", result.indicator.unit],
-      result.data.map((r, i) => [i + 1, r.country_name, r.value.toFixed(2)])
+      result.data.map((r, i) => [r.rank ?? rankStart + i, r.country_name, r.value.toFixed(2)])
     );
   }
 
@@ -1022,7 +1102,8 @@
       datasets: [{
         label: `${result.indicator_x.label} vs ${result.indicator_y.label}`,
         data: points.map(p => ({ x: p.x, y: p.y, country: p.country_name })),
-        backgroundColor: COLORS[0],
+        backgroundColor: points.map(p => countryColor(p.country_name)),
+        borderColor: points.map(p => countryColor(p.country_name)),
       }],
     }, {
       scales: {
@@ -1106,12 +1187,27 @@
     }
   }
 
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
   function appendTable(headers, rows) {
+    const countryColumn = headers.indexOf("Country");
     const html = `
       <div class="table-wrap">
         <table>
-          <thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead>
-          <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody>
+          <thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>
+          <tbody>${rows.map(row => `<tr>${row.map((cell, index) => {
+            if (index === countryColumn) {
+              const color = countryColor(cell);
+              return `<td><span class="country-key"><span class="country-swatch" style="--country-color:${color}"></span>${escapeHtml(cell)}</span></td>`;
+            }
+            return `<td>${escapeHtml(cell)}</td>`;
+          }).join("")}</tr>`).join("")}</tbody>
         </table>
       </div>
     `;

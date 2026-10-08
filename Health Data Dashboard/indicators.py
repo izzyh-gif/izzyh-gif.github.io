@@ -45,6 +45,9 @@ INDICATORS = [
         "unit": "deaths per 1,000 live births",
         "source": "WHO",
         "source_code": "MDG_0000000007",
+        "fallback_source": "OWID",
+        "fallback_source_code": "child-mortality",
+        "source_note": "Uses WHO GHO when available; falls back to OWID if the WHO gateway is unavailable.",
         "description": "Probability of dying before age 5, per 1,000 live births.",
     },
     {
@@ -54,6 +57,9 @@ INDICATORS = [
         "unit": "deaths per 100,000 live births",
         "source": "WHO",
         "source_code": "MDG_0000000026",
+        "fallback_source": "OWID",
+        "fallback_source_code": "maternal-mortality",
+        "source_note": "Uses WHO GHO when available; falls back to OWID if the WHO gateway is unavailable.",
         "description": "Number of maternal deaths per 100,000 live births.",
     },
     {
