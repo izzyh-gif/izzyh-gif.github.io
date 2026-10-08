@@ -516,6 +516,9 @@ def _indicator_payload(indicator_id: str, df) -> dict:
     sources = sorted({str(source) for source in df.get("source", []).dropna()}) if "source" in df else []
     if sources:
         metadata["data_source"] = sources[0] if len(sources) == 1 else sources
+        valid_years = df["year"].dropna() if "year" in df else []
+        if len(valid_years):
+            metadata["latest_year"] = int(valid_years.max())
         if sources[0] != metadata.get("source"):
             metadata["source_note"] = (
                 f"Primary {metadata.get('source')} data was unavailable; "
@@ -622,6 +625,7 @@ def api_data():
     if error:
         return error
 
+    source_indicator = _indicator_payload(indicator_id, df)
     df = analysis.filter_data(
         df,
         countries=_parse_countries_param(),
@@ -629,7 +633,7 @@ def api_data():
         year_max=_parse_int_param("year_max"),
     )
     return jsonify({
-        "indicator": _indicator_payload(indicator_id, df),
+        "indicator": source_indicator,
         "data": _df_to_records(df),
     })
 
@@ -684,10 +688,11 @@ def api_trend():
     if error:
         return error
 
+    source_indicator = _indicator_payload(indicator_id, df)
     df = analysis.filter_data(df, countries=_parse_countries_param())
     trend = analysis.year_over_year_change(df)
     return jsonify({
-        "indicator": _indicator_payload(indicator_id, df),
+        "indicator": source_indicator,
         "data": _df_to_records(trend),
     })
 

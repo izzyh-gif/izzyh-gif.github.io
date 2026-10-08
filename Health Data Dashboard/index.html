@@ -275,7 +275,12 @@
       color: var(--text-muted);
       font-size: .72rem;
     }
-    .chart-toolbar[hidden] { display: none; }
+    .data-coverage {
+      margin: -.2rem 0 .7rem;
+      color: var(--text-muted);
+      font-size: .75rem;
+      line-height: 1.4;
+    }
     .reset-zoom {
       flex-shrink: 0;
       padding: .35rem .6rem;
@@ -972,6 +977,7 @@
 
     const result = await apiGet(`/api/data?${params.toString()}`);
     renderResultsShell();
+    updateDataCoverage([result.indicator]);
     visibleSnapshot = { rows: [], points: [], statistics: [] };
 
     if (!result.data.length) {
@@ -1087,6 +1093,7 @@
 
     const result = await apiGet(`/api/correlation?${params.toString()}`);
     renderResultsShell();
+    updateDataCoverage([result.indicator_x, result.indicator_y]);
 
     let points = result.points;
     if (countries.length) {
@@ -1138,6 +1145,15 @@
     ]);
   }
 
+  function updateDataCoverage(indicators) {
+    const coverage = document.getElementById("data-coverage");
+    if (!coverage) return;
+    const lines = indicators
+      .filter(ind => ind && ind.latest_year)
+      .map(ind => `${ind.label}: data through ${ind.latest_year}`);
+    coverage.textContent = lines.length ? lines.join(" · ") + "." : "";
+  }
+
   // ============================================================
   // RENDER HELPERS
   // ============================================================
@@ -1149,6 +1165,7 @@
         <span>${currentMode === "correlation" ? "Scroll or pinch to zoom both axes; drag to zoom a region; hold Shift to pan." : "Scroll or pinch to zoom the timeline; drag to zoom a range; hold Shift to pan."}</span>
         <button type="button" class="reset-zoom" id="reset-zoom">Reset zoom</button>
       </div>
+      <p class="data-coverage" id="data-coverage"></p>
       <div class="chart-wrap"><canvas id="main-chart"></canvas></div>
       <div id="extra-content"></div>
     `;
