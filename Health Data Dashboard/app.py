@@ -263,15 +263,20 @@ def _validate_chat_payload(payload: object) -> tuple[dict | None, str | None]:
 
 
 def _chat_scope(context: dict) -> dict:
-    return {
+    scope = {
         "mode": context["mode"],
         "indicator_ids": [item["id"] for item in context["indicators"]],
         "selected_country_count": len(context["filters"]["countries"]),
-        "api_row_counts": {
+    }
+    if "api_data" in context:
+        scope["api_row_counts"] = {
             item["indicator_id"]: len(item["records"])
             for item in context["api_data"]
-        },
-    }
+        }
+    else:
+        scope["visible_row_count"] = len(context.get("snapshot", {}).get("rows", []))
+        scope["visible_point_count"] = len(context.get("snapshot", {}).get("points", []))
+    return scope
 
 
 class ChatContextTooLarge(ValueError):
@@ -489,6 +494,10 @@ def _deterministic_dashboard_action(message: str, context: dict) -> dict | None:
             "rank_start": start,
             "rank_end": end,
         }
+    for region_name in sorted(REGION_GROUPS, key=len, reverse=True):
+        if region_name.lower() in text and indicator_id is not None:
+            mode = "correlation" if "correlation" in text or "compare" in text else "trend"
+            return {"mode": mode, "indicator_id": indicator_id, "region": region_name}
     if year_range and ("trend" in text or "over time" in text or "between" in text or "from" in text):
         if indicator_id is None:
             return None
