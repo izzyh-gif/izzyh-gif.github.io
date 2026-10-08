@@ -80,6 +80,24 @@ CHAT_MAX_CONTEXT_CHARS = 400_000
 CHAT_MAX_REQUEST_BYTES = 100_000
 CHAT_MODES = {"trend", "rankings", "correlation"}
 CHAT_COUNTRY_CODE = re.compile(r"^[A-Z0-9_-]{1,12}$")
+REGION_GROUPS = {
+    "Africa": "DZA AGO BEN BWA BFA BDI CPV CMR CAF TCD COM COD COG CIV DJI EGY GNQ ERI SWZ ETH GAB GMB GHA GIN GNB KEN LSO LBR LBY MDG MWI MLI MRT MUS MAR MOZ NAM NER NGA RWA STP SEN SYC SLE SOM ZAF SSD SDN TZA TGO TUN UGA ZMB ZWE".split(),
+    "Asia": "AFG ARM AZE BHR BGD BTN BRN KHM CHN CYP GEO IND IDN IRN IRQ ISR JPN JOR KAZ KWT KGZ LAO LBN MYS MDV MNG MMR NPL OMN PAK PHL QAT SAU SGP KOR LKA SYR TJK THA TLS TUR TKM ARE UZB VNM YEM PRK PSE TWN".split(),
+    "Europe": "ALB AND AUT BLR BEL BIH BGR HRV CZE DNK EST FIN FRA DEU GRC HUN ISL IRL ITA XKX LVA LIE LTU LUX MLT MDA MCO MNE NLD MKD NOR POL PRT ROU RUS SMR SRB SVK SVN ESP SWE CHE UKR GBR VAT".split(),
+    "North America": "CAN USA MEX BLZ CRI SLV GTM HND NIC PAN ATG BHS BRB CUB DMA DOM GRD HTI JAM KNA LCA VCT TTO".split(),
+    "Oceania": "AUS FJI KIR MHL FSM NRU NZL PLW PNG WSM SLB TON TUV VUT".split(),
+    "South America": "ARG BOL BRA CHL COL ECU GUY PRY PER SUR URY VEN".split(),
+    "Scandinavia": "DNK NOR SWE".split(),
+    "Nordic countries": "DNK FIN ISL NOR SWE".split(),
+    "East Asia": "CHN JPN MNG PRK KOR TWN".split(),
+    "Southeast Asia": "BRN KHM IDN LAO MYS MMR PHL SGP THA TLS VNM".split(),
+    "South Asia": "AFG BGD BTN IND MDV NPL PAK LKA".split(),
+    "Western Europe": "AUT BEL FRA DEU IRL LIE LUX MCO NLD PRT CHE GBR".split(),
+    "Eastern Europe": "BLR BGR CZE HUN POL MDA ROU RUS SVK UKR".split(),
+    "Latin America": "ARG BOL BRA CHL COL CRI CUB DOM ECU SLV GTM HTI HND MEX NIC PAN PRY PER URY VEN".split(),
+    "Middle East": "BHR CYP EGY IRN IRQ ISR JOR KWT LBN OMN PSE QAT SAU SYR TUR ARE YEM".split(),
+    "Sub-Saharan Africa": "AGO BEN BWA BFA BDI CPV CMR CAF TCD COM COD COG CIV DJI GNQ ERI SWZ ETH GAB GMB GHA GIN GNB KEN LSO LBR MDG MWI MLI MRT MUS MOZ NAM NER NGA RWA STP SEN SYC SLE SOM ZAF SSD SDN TZA TGO UGA ZMB ZWE".split(),
+}
 CHAT_RECORD_KEYS = {
     "country_code", "country_name", "year", "value", "change", "pct_change",
     "rank", "x", "y",
@@ -393,6 +411,13 @@ def _validate_dashboard_action(raw_action: object) -> dict | None:
         if year_min is not None and year_max is not None and year_min > year_max:
             return None
 
+    region_name = raw_action.get("region")
+    if region_name is not None:
+        if not isinstance(region_name, str) or region_name not in REGION_GROUPS:
+            return None
+        action["region"] = region_name
+        action["country_codes"] = REGION_GROUPS[region_name]
+
     country_codes = raw_action.get("country_codes")
     if country_codes is not None:
         if not isinstance(country_codes, list) or len(country_codes) > CHAT_MAX_COUNTRIES:
@@ -432,7 +457,7 @@ def _ask_chat_model(chat: dict) -> dict:
         '- Trend: {"mode":"trend","indicator_id":"...","year_min":2000,"year_max":2020}\n'
         '- Rankings: {"mode":"rankings","indicator_id":"...","year":2022,"rank_start":10,"rank_end":50}\n'
         '- Correlation: {"mode":"correlation","indicator_x_id":"...","indicator_y_id":"...","year":2022}\n'
-        "You may include country_codes in any action. Rank ranges are inclusive. Omit fields "
+        "You may include country_codes or one of these region names in any action: " + ", ".join(sorted(REGION_GROUPS)) + ". Region names use OWID's broad geographic conventions. Rank ranges are inclusive. Omit fields "
         "the user did not request. If the request is ambiguous or missing a needed value, "
         "ask a clarification question in answer and set dashboard_action to null. For a "
         "normal data question, answer it and set dashboard_action to null. Keep answer concise.\n\n"
