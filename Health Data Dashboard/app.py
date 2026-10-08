@@ -293,6 +293,25 @@ def _chat_records(df) -> list[dict]:
     return records
 
 
+def _summarize_chat_data(df) -> dict:
+    """Create a compact, truthful summary after loading the full API data."""
+    if df.empty:
+        return {"record_count": 0, "country_count": 0, "year_range": None, "latest_year": None}
+
+    latest_year = int(df["year"].max())
+    latest = df[df["year"] == latest_year].sort_values("value", ascending=False)
+    return {
+        "record_count": int(len(df)),
+        "country_count": int(df["country_code"].nunique()),
+        "year_range": [int(df["year"].min()), latest_year],
+        "latest_year": latest_year,
+        "latest_year_highest": _chat_records(latest.head(10)),
+        "latest_year_lowest": _chat_records(latest.tail(10).sort_values("value")),
+        "overall_min_value": float(df["value"].min()),
+        "overall_max_value": float(df["value"].max()),
+    }
+
+
 def _build_server_chat_context(chat: dict) -> dict:
     """Load full selected API data on the server and build model context."""
     filters = chat["context"]["filters"]
@@ -349,9 +368,20 @@ def _build_server_chat_context(chat: dict) -> dict:
 
     serialized = json.dumps(context, separators=(",", ":"), ensure_ascii=True)
     if len(serialized) > CHAT_MAX_CONTEXT_CHARS:
+        for item in context["api_data"]:
+            df = get_indicator_data(item["indicator_id"])
+            df = analysis.filter_data(df, countries=filters["countries"])
+            item["summary"] = _summarize_chat_data(df)
+            item["records"] = []
+        context["context_mode"] = "summarized"
+        context["summary_note"] = (
+            "The full API data was loaded and analyzed server-side. Raw records were replaced "
+            "with compact summaries for the language model because the selection was large."
+        )
+        serialized = json.dumps(context, separators=(",", ":"), ensure_ascii=True)
+    if len(serialized) > CHAT_MAX_CONTEXT_CHARS:
         raise ChatContextTooLarge(
-            "This selection contains too much data for one chat request. "
-            "Select specific countries or indicators and try again."
+            "This selection is too large even after summarization. Select fewer countries or indicators."
         )
     return context
 
