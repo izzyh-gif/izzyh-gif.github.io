@@ -38,3 +38,6 @@ Playlist Creator/data/*
 !Playlist Creator/data/sample_songs.csv
 # The vector store contains the full dataset's text and metadata.
 Playlist Creator/chroma_store/
+# Saved playlists list songs from the private library.
+Playlist Creator/saved_playlists.json
+Playlist Creator/.playlists-*.json
