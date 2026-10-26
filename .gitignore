@@ -29,3 +29,12 @@ env/
 .idea/
 *.swp
 *.swo
+
+# -------------------------------------------------------
+# Playlist Creator — keep raw datasets out of the repo
+# -------------------------------------------------------
+# Ignore everything in data/ except the 20-song sample.
+Playlist Creator/data/*
+!Playlist Creator/data/sample_songs.csv
+# The vector store contains the full dataset's text and metadata.
+Playlist Creator/chroma_store/
