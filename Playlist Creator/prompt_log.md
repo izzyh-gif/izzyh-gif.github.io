@@ -1,7 +1,7 @@
 ## Use of AI
 I used Claude in browser to hash out my idea, used Codex to populate my exported liked songs with vibe tags and descriptions based off web searches, and used Claude Opus 5.5 in my Kiro IDE to edit code and implement new features.
 
-## prompts
+## Prompts
 
 I installed chromadb, can you double check if it's working properly using the test file in playlist creator and editing it to see if it works on more items
 
@@ -29,7 +29,7 @@ Implement both changes (taking title and artist out of the searched data and use
 
 I'm not supposed to commit my raw dataset to my github repository. Can you rename the 20 songs I used originally to sample_songs.csv and ensure only that csv can be commited? My other dataset should use a .gitignore to avoid being committed
 
-## brainstorming prompts
+## Brainstorming prompts
 
 https://www.cs.cmu.edu/~113/hw6.html
 This is my assignment, what are some ideas to explore?
