@@ -1,9 +1,8 @@
 ## OVERVIEW
-
-STRANDED is a survival game where the player must attempt to survive 50 nights on a deserted island after a plane crash. The player must explore the island to gather materials for food, shelter, and weapons to survive and defend themselves from entities on the island.
+STRANDED is a survival game where the player must attempt to survive 50 nights on a deserted island after a plane crash. The player must explore the island to gather materials for food, shelter, and weapons to survive and defend themselves from entities on the island. The island is almost utopian during the day to the point where something seems eerie.
 
 ## FEATURES
-1) This game is set in a 3D world on a deserted island and should be an open world game that the players can explore. As the player levels up the campfire, more of the map should be unlocked at each level. Start the biome in the forest and unlock the desert biome at level 50 of the campfire, though the desert doesn't have much helpful materials.
+1) This game is set in a 3D world on a deserted island and should be an open world game that the players can explore. As the player levels up the campfire, more of the map should be unlocked at each level. Start the biome in the forest and unlock the desert biome at level 50 of the campfire, though the desert doesn't have much helpful materials. There should be a slight horror element to the game where it seems utopian during the day where the player almost expects there to be something wrong.
 
 2) Players have a hunger and health bar. Hunger drops over time, decreasing faster when the player sprints, whereas health only decreases when the player takes damage from monsters or entities. 
 
@@ -35,6 +34,8 @@ Shift to Sprint
 Click to eat, use an item, or complete actions like chopping down trees or attacking a monster.
 
 Q to drop an item, E to pick it up.
+
+The player should be able to navigate through their inventory.
 
 ## SCREENS
 The first time the player plays this game, they should have a tutorial screen that leads them through a series of basic tasks that teach them all the different functions they need to know about the game.
